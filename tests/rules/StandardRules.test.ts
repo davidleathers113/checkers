@@ -228,12 +228,12 @@ describe('StandardRules', () => {
       expect(initialBoard.getPieceCount(Player.RED)).toBe(12);
       expect(initialBoard.getPieceCount(Player.BLACK)).toBe(12);
       
-      // Check specific positions
+      // Check specific positions (BLACK pieces on top, RED on bottom)
       expect(initialBoard.getPiece(new Position(0, 1))).toBeInstanceOf(RegularPiece);
-      expect(initialBoard.getPiece(new Position(0, 1))!.player).toBe(Player.RED);
+      expect(initialBoard.getPiece(new Position(0, 1))!.player).toBe(Player.BLACK);
       
       expect(initialBoard.getPiece(new Position(7, 0))).toBeInstanceOf(RegularPiece);
-      expect(initialBoard.getPiece(new Position(7, 0))!.player).toBe(Player.BLACK);
+      expect(initialBoard.getPiece(new Position(7, 0))!.player).toBe(Player.RED);
     });
 
     it('should place pieces only on dark squares', () => {

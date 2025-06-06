@@ -26,12 +26,6 @@ async function main(): Promise<void> {
     ui.render(game.getBoard());
     ui.updateCurrentPlayer(game.getCurrentPlayer());
 
-    // Debug: Check why game is over immediately
-    console.log('Red pieces:', game.getBoard().getPieceCount(Player.RED));
-    console.log('Black pieces:', game.getBoard().getPieceCount(Player.BLACK));
-    console.log('Red moves:', game.getAllPossibleMoves().length);
-    console.log('Game over?', game.isGameOver());
-    
     // Game loop
     while (!game.isGameOver()) {
       try {

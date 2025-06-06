@@ -13,8 +13,15 @@ export class MoveCommand extends BaseCommand {
   }
 
   override execute(state: GameState): GameState {
-    // Store previous state for undo
-    this.previousState = { ...state };
+    // Store deep copy of previous state for undo
+    this.previousState = {
+      board: state.board.copy(),
+      currentPlayer: state.currentPlayer,
+      moveHistory: [...state.moveHistory],
+      capturedPieces: [...state.capturedPieces],
+      winner: state.winner,
+      isGameOver: state.isGameOver
+    };
 
     // Apply the move to create new state
     const newBoard = this.move.apply(state.board);

@@ -267,7 +267,9 @@ export class Board {
    * Creates a deep copy of the squares array.
    */
   private copySquares(): (Piece | null)[][] {
-    return this.squares.map(row => [...row]);
+    return this.squares.map(row => 
+      row.map(piece => piece ? piece.copy() : null)
+    );
   }
 
   /**
