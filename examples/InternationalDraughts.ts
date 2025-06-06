@@ -150,6 +150,7 @@ export class InternationalDraughtsRules extends CustomRulesBase {
     const moves: Move[] = [];
     let currentPos = position;
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const nextPos = this.getNextPositionInDirection(currentPos, direction);
       if (!nextPos || !board.isValidPosition(nextPos)) break;
@@ -177,6 +178,7 @@ export class InternationalDraughtsRules extends CustomRulesBase {
     if (!piece) return moves;
 
     // Look for opponent pieces to capture
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const nextPos = this.getNextPositionInDirection(currentPos, direction);
       if (!nextPos || !board.isValidPosition(nextPos)) break;
@@ -190,6 +192,7 @@ export class InternationalDraughtsRules extends CustomRulesBase {
       if (nextPiece && nextPiece.player !== piece.player) {
         // Look for landing positions after the captured piece
         let landingPos = nextPos;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const nextLandingPos = this.getNextPositionInDirection(landingPos, direction);
           if (!nextLandingPos || !board.isValidPosition(nextLandingPos)) break;
