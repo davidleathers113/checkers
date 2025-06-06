@@ -138,7 +138,7 @@ describe('Move', () => {
       const newBoard = move.apply(testBoard);
       
       expect(newBoard.getPiece(from)).toBe(null);
-      expect(newBoard.getPiece(to)).toBe(piece);
+      expect(newBoard.getPiece(to)).toEqual(piece);
       expect(newBoard.getPiece(capturePos)).toBe(null);
     });
 
@@ -162,9 +162,9 @@ describe('Move', () => {
       const newMove = move.withCaptures(newCaptures);
       
       expect(newMove.captures).toHaveLength(3);
-      expect(newMove.captures).toContain(new Position(4, 4));
-      expect(newMove.captures).toContain(new Position(5, 5));
-      expect(newMove.captures).toContain(new Position(6, 6));
+      expect(newMove.captures).toContainEqual(new Position(4, 4));
+      expect(newMove.captures).toContainEqual(new Position(5, 5));
+      expect(newMove.captures).toContainEqual(new Position(6, 6));
       expect(move.captures).toHaveLength(1); // Original unchanged
     });
   });
@@ -251,11 +251,13 @@ describe('Move', () => {
     });
 
     it('should parse capture move', () => {
-      const move = Move.fromString('c6xd5');
+      const move = Move.fromString('c6xe4');
       
-      expect(move.from).toEqual(new Position(2, 2));
-      expect(move.to).toEqual(new Position(3, 3));
+      expect(move.from).toEqual(new Position(2, 2)); // c6
+      expect(move.to).toEqual(new Position(4, 4));   // e4
       expect(move.isCapture()).toBe(true);
+      expect(move.captures).toHaveLength(1);
+      expect(move.captures[0]).toEqual(new Position(3, 3)); // d5 is captured
     });
 
     it('should parse promotion move', () => {
