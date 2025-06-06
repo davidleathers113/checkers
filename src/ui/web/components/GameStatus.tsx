@@ -13,8 +13,9 @@ export function GameStatus({
   gameOver, 
   winner, 
   moveCount 
-}: GameStatusProps) {
-  const playerName = (player: Player) => player === Player.RED ? 'Red' : 'Black';
+}: GameStatusProps): React.JSX.Element {
+  const playerName = (player: Player): string => player === Player.RED ? 'Red' : 'Black';
+  const playerColorClass = currentPlayer === Player.RED ? 'red' : 'black';
   
   return (
     <div className="game-status">
@@ -27,11 +28,13 @@ export function GameStatus({
           )}
         </div>
       ) : (
-        <div className="current-player">
-          Current Player: {playerName(currentPlayer)}
-        </div>
+        <>
+          <div className={`current-player ${playerColorClass}`}>
+            Current Turn: {playerName(currentPlayer)}
+          </div>
+          <div className="move-count">Move {moveCount + 1}</div>
+        </>
       )}
-      <div>Move Count: {moveCount}</div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { Piece } from '../src/pieces/Piece';
  */
 export class CrazyCheckersRules extends CustomRulesBase {
   constructor(
+    boardSize: number = 8,
     private options: {
       allowBackwardMoves?: boolean;
       enableTeleportation?: boolean;
@@ -21,7 +22,7 @@ export class CrazyCheckersRules extends CustomRulesBase {
       doubleJumpReward?: boolean;
     } = {}
   ) {
-    super();
+    super(boardSize);
   }
 
   /**

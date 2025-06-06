@@ -1,16 +1,17 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.(ts|tsx)', '**/?(*.)+(spec|test).(ts|tsx)'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   collectCoverageFrom: [
-    'src/**/*.ts',
+    'src/**/*.(ts|tsx)',
     '!src/**/*.d.ts',
-    '!src/index.ts'
+    '!src/index.ts',
+    '!src/ui/web/main.tsx'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
@@ -21,5 +22,11 @@ module.exports = {
       lines: 80,
       statements: 80
     }
+  },
+  moduleNameMapper: {
+    '\\.(css|less|sass|scss)$': '<rootDir>/tests/__mocks__/styleMock.js',
+  },
+  testEnvironmentOptions: {
+    testURL: 'http://localhost'
   }
 };

@@ -127,28 +127,28 @@ export class Position {
   /**
    * Converts position to string notation (e.g., "a1", "h8").
    */
-  toString(): string {
-    const file = String.fromCharCode(97 + this.col); // a-h
-    const rank = (8 - this.row).toString(); // 1-8
+  toString(boardSize: number = 8): string {
+    const file = String.fromCharCode(97 + this.col); // a-h, etc.
+    const rank = (boardSize - this.row).toString(); // 1-8, etc.
     return `${file}${rank}`;
   }
 
   /**
    * Creates a Position from string notation.
    */
-  static fromString(notation: string): Position {
-    if (notation.length !== 2) {
+  static fromString(notation: string, boardSize: number = 8): Position {
+    if (notation.length < 2) {
       throw new InvalidPositionError(new Position(-1, -1));
     }
     
-    const file = notation.charCodeAt(0) - 97; // a=0, b=1, etc.
-    const rank = parseInt(notation[1]!, 10);
+    const file = notation.charCodeAt(0) - 97;
+    const rank = parseInt(notation.substring(1), 10);
     
-    if (file < 0 || file > 7 || rank < 1 || rank > 8) {
+    if (isNaN(rank) || file < 0 || file >= boardSize || rank < 1 || rank > boardSize) {
       throw new InvalidPositionError(new Position(-1, -1));
     }
     
-    const row = 8 - rank;
+    const row = boardSize - rank;
     return new Position(row, file);
   }
 
@@ -162,16 +162,15 @@ export class Position {
   /**
    * Gets a unique hash for this position.
    */
-  hash(): number {
-    return this.row * 8 + this.col;
+  hash(): string {
+    return `${this.row},${this.col}`;
   }
 
   /**
    * Creates a Position from a hash value.
    */
-  static fromHash(hash: number): Position {
-    const row = Math.floor(hash / 8);
-    const col = hash % 8;
-    return new Position(row, col);
+  static fromHash(hash: string): Position {
+    const [row, col] = hash.split(',').map(Number);
+    return new Position(row!, col!);
   }
 }

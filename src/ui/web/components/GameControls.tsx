@@ -16,7 +16,7 @@ export function GameControls({
   canUndo,
   canRedo,
   gameOver
-}: GameControlsProps) {
+}: GameControlsProps): React.JSX.Element {
   return (
     <div className="game-controls">
       <button 

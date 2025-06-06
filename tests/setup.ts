@@ -2,6 +2,7 @@
 // This file runs before all tests
 
 // Add any global test configuration here
+import '@testing-library/jest-dom';
 
 // Mock console methods to reduce noise during testing
 const originalConsole = { ...console };

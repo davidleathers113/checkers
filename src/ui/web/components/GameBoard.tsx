@@ -4,19 +4,29 @@ import { Position } from '../../../core/Position';
 import { Move } from '../../../core/Move';
 import { GameSquare } from './GameSquare';
 
+interface AnimationState {
+  movingPieces: Map<string, { from: Position; to: Position }>;
+  capturedPieces: Set<string>;
+  promotedPieces: Set<string>;
+}
+
 interface GameBoardProps {
   board: Board;
   selectedPosition: Position | null;
   validMoves: Move[];
+  animationState: AnimationState;
   onSquareClick: (position: Position) => void;
+  showMoveHints: boolean;
 }
 
 export function GameBoard({ 
   board, 
   selectedPosition, 
   validMoves, 
-  onSquareClick 
-}: GameBoardProps) {
+  animationState,
+  onSquareClick,
+  showMoveHints
+}: GameBoardProps): React.JSX.Element {
   const squares = [];
   
   for (let row = 0; row < board.size; row++) {
@@ -24,7 +34,12 @@ export function GameBoard({
       const position = new Position(row, col);
       const piece = board.getPiece(position);
       const isSelected = selectedPosition?.equals(position) ?? false;
-      const isValidMove = validMoves.some(move => move.to.equals(position));
+      const isValidMove = showMoveHints && validMoves.some(move => move.to.equals(position));
+      const posKey = position.hash();
+      
+      const isMoving = animationState.movingPieces.has(posKey);
+      const isCaptured = animationState.capturedPieces.has(posKey);
+      const isPromoted = animationState.promotedPieces.has(posKey);
       
       squares.push(
         <GameSquare
@@ -33,6 +48,9 @@ export function GameBoard({
           piece={piece}
           isSelected={isSelected}
           isValidMove={isValidMove}
+          isMoving={isMoving}
+          isCaptured={isCaptured}
+          isPromoted={isPromoted}
           onClick={() => onSquareClick(position)}
         />
       );

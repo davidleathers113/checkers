@@ -13,8 +13,8 @@ import { RegularPiece } from '../src/pieces/RegularPiece';
  * - Different piece placement
  */
 export class InternationalDraughtsRules extends CustomRulesBase {
-  constructor() {
-    super(10); // 10x10 board
+  constructor(boardSize: number = 10) {
+    super(boardSize); // Default to 10x10 for International Draughts
   }
 
   /**

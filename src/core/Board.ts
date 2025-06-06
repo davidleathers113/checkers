@@ -5,21 +5,31 @@ import { InvalidPositionError, InvalidBoardStateError } from '../errors';
 
 /**
  * Immutable class representing the game board.
- * All operations return new Board instances.
+ * All operations return new Board instances using a performant copy-on-write strategy.
  */
 export class Board {
-  private readonly squares: ReadonlyArray<ReadonlyArray<Piece | null>>;
+  // The board state is now a flat, 1D array for performance.
+  private readonly squares: ReadonlyArray<Piece | null>;
   private readonly pieceCount: Map<Player, number>;
   
   constructor(
     public readonly size: number = 8,
-    squares?: ReadonlyArray<ReadonlyArray<Piece | null>>
+    // The constructor can accept a 1D or 2D array for flexibility.
+    initialSquares?: ReadonlyArray<ReadonlyArray<Piece | null>> | ReadonlyArray<Piece | null>
   ) {
     if (size < 4 || size % 2 !== 0) {
       throw new InvalidBoardStateError('Board size must be even and at least 4');
     }
     
-    this.squares = squares || this.createEmptyBoard(size);
+    if (initialSquares) {
+      // Flatten if a 2D array is provided
+      this.squares = Array.isArray(initialSquares[0]) 
+        ? (initialSquares as ReadonlyArray<ReadonlyArray<Piece | null>>).flat() 
+        : initialSquares as ReadonlyArray<Piece | null>;
+    } else {
+      this.squares = this.createEmptyBoard(size);
+    }
+    
     this.pieceCount = this.calculatePieceCount();
     Object.freeze(this.squares);
     Object.freeze(this.pieceCount);
@@ -33,24 +43,30 @@ export class Board {
     if (!this.isValidPosition(position)) {
       throw new InvalidPositionError(position);
     }
-    return this.squares[position.row]![position.col]!;
+    return this.squares[position.row * this.size + position.col]!;
   }
 
   /**
-   * Sets a piece at a position (returns new Board).
+   * Sets a piece at a position using copy-on-write.
    */
   setPiece(position: Position, piece: Piece | null): Board {
     if (!this.isValidPosition(position)) {
       throw new InvalidPositionError(position);
     }
 
-    const newSquares = this.copySquares();
-    newSquares[position.row]![position.col] = piece;
+    // Create a shallow copy of the squares array. This is very fast.
+    const newSquares = [...this.squares];
+    
+    // Mutate only the specific index in the new array.
+    newSquares[position.row * this.size + position.col] = piece;
+    
+    // Return a new Board instance with the modified array.
+    // The underlying Piece objects are still shared, which is fine due to their immutability.
     return new Board(this.size, newSquares);
   }
 
   /**
-   * Moves a piece from one position to another (returns new Board).
+   * Moves a piece from one position to another.
    */
   movePiece(from: Position, to: Position): Board {
     if (!this.isValidPosition(from) || !this.isValidPosition(to)) {
@@ -62,9 +78,9 @@ export class Board {
       throw new InvalidBoardStateError(`No piece at position ${from}`);
     }
 
-    const newSquares = this.copySquares();
-    newSquares[from.row]![from.col] = null;
-    newSquares[to.row]![to.col] = piece;
+    const newSquares = [...this.squares];
+    newSquares[from.row * this.size + from.col] = null;
+    newSquares[to.row * this.size + to.col] = piece;
     return new Board(this.size, newSquares);
   }
 
@@ -76,14 +92,14 @@ export class Board {
   }
 
   /**
-   * Removes multiple pieces (returns new Board).
+   * Removes multiple pieces.
    */
   removePieces(positions: Position[]): Board {
-    const newSquares = this.copySquares();
+    const newSquares = [...this.squares];
     
     for (const position of positions) {
       if (this.isValidPosition(position)) {
-        newSquares[position.row]![position.col] = null;
+        newSquares[position.row * this.size + position.col] = null;
       }
     }
     
@@ -96,15 +112,13 @@ export class Board {
   getPlayerPieces(player: Player): Array<{ position: Position; piece: Piece }> {
     const pieces: Array<{ position: Position; piece: Piece }> = [];
     
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        const piece = this.squares[row]![col];
-        if (piece && piece.player === player) {
-          pieces.push({
-            position: new Position(row, col),
-            piece
-          });
-        }
+    for (let i = 0; i < this.squares.length; i++) {
+      const piece = this.squares[i];
+      if (piece && piece.player === player) {
+        pieces.push({
+          position: new Position(Math.floor(i / this.size), i % this.size),
+          piece
+        });
       }
     }
     
@@ -132,7 +146,7 @@ export class Board {
     if (!this.isValidPosition(position)) {
       throw new InvalidPositionError(position);
     }
-    return this.squares[position.row]![position.col] === null;
+    return this.getPiece(position) === null;
   }
 
   /**
@@ -149,11 +163,9 @@ export class Board {
   getOccupiedPositions(): Position[] {
     const positions: Position[] = [];
     
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        if (this.squares[row]![col] !== null) {
-          positions.push(new Position(row, col));
-        }
+    for (let i = 0; i < this.squares.length; i++) {
+      if (this.squares[i] !== null) {
+        positions.push(new Position(Math.floor(i / this.size), i % this.size));
       }
     }
     
@@ -166,11 +178,9 @@ export class Board {
   getEmptyPositions(): Position[] {
     const positions: Position[] = [];
     
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        if (this.squares[row]![col] === null) {
-          positions.push(new Position(row, col));
-        }
+    for (let i = 0; i < this.squares.length; i++) {
+      if (this.squares[i] === null) {
+        positions.push(new Position(Math.floor(i / this.size), i % this.size));
       }
     }
     
@@ -196,10 +206,12 @@ export class Board {
   }
 
   /**
-   * Creates a deep copy of this board.
+   * Creates a deep copy ONLY when absolutely necessary. For general mutations,
+   * use the copy-on-write methods (setPiece, movePiece).
    */
   copy(): Board {
-    return new Board(this.size, this.copySquares());
+    const newSquares = this.squares.map(p => p ? p.copy() : null);
+    return new Board(this.size, newSquares);
   }
 
   /**
@@ -215,15 +227,13 @@ export class Board {
   equals(other: Board | null): boolean {
     if (!other || this.size !== other.size) return false;
     
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        const thisPiece = this.squares[row]![col]!;
-        const otherPiece = other.squares[row]![col]!;
-        
-        if (thisPiece === null && otherPiece === null) continue;
-        if (thisPiece === null || otherPiece === null) return false;
-        if (!thisPiece.equals(otherPiece)) return false;
-      }
+    for (let i = 0; i < this.squares.length; i++) {
+      const thisPiece = this.squares[i]!;
+      const otherPiece = other.squares[i]!;
+      
+      if (thisPiece === null && otherPiece === null) continue;
+      if (thisPiece === null || otherPiece === null) return false;
+      if (!thisPiece.equals(otherPiece)) return false;
     }
     
     return true;
@@ -235,61 +245,16 @@ export class Board {
   hash(): string {
     const parts: string[] = [];
     
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        const piece = this.squares[row]![col];
-        if (piece) {
-          parts.push(`${row},${col}:${piece.player}:${piece.isKing()}`);
-        }
+    for (let i = 0; i < this.squares.length; i++) {
+      const piece = this.squares[i];
+      if (piece) {
+        const row = Math.floor(i / this.size);
+        const col = i % this.size;
+        parts.push(`${row},${col}:${piece.player}:${piece.isKing()}`);
       }
     }
     
     return parts.join('|');
-  }
-
-  /**
-   * Creates an empty board.
-   */
-  private createEmptyBoard(size: number): ReadonlyArray<ReadonlyArray<Piece | null>> {
-    const board: (Piece | null)[][] = [];
-    
-    for (let row = 0; row < size; row++) {
-      board[row] = [];
-      for (let col = 0; col < size; col++) {
-        board[row]![col] = null;
-      }
-    }
-    
-    return board;
-  }
-
-  /**
-   * Creates a deep copy of the squares array.
-   */
-  private copySquares(): (Piece | null)[][] {
-    return this.squares.map(row => 
-      row.map(piece => piece ? piece.copy() : null)
-    );
-  }
-
-  /**
-   * Calculates piece count for each player.
-   */
-  private calculatePieceCount(): Map<Player, number> {
-    const count = new Map<Player, number>();
-    count.set(Player.RED, 0);
-    count.set(Player.BLACK, 0);
-    
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        const piece = this.squares[row]![col];
-        if (piece) {
-          count.set(piece.player, (count.get(piece.player) || 0) + 1);
-        }
-      }
-    }
-    
-    return count;
   }
 
   /**
@@ -305,10 +270,14 @@ export class Board {
     
     for (let row = 0; row < this.size; row++) {
       const rank = (this.size - row).toString();
-      const rowStr = this.squares[row]!.map(piece => 
-        piece ? piece.getSymbol() : '.'
-      ).join(' ');
-      lines.push(`${rank} ${rowStr} ${rank}`);
+      const rowPieces: string[] = [];
+      
+      for (let col = 0; col < this.size; col++) {
+        const piece = this.squares[row * this.size + col];
+        rowPieces.push(piece ? piece.getSymbol() : '.');
+      }
+      
+      lines.push(`${rank} ${rowPieces.join(' ')} ${rank}`);
     }
     
     // Column footers
@@ -317,5 +286,26 @@ export class Board {
     ).join(' '));
     
     return lines.join('\n');
+  }
+
+  // --- PRIVATE METHODS ---
+
+  private createEmptyBoard(size: number): ReadonlyArray<Piece | null> {
+    return Array(size * size).fill(null);
+  }
+
+  private calculatePieceCount(): Map<Player, number> {
+    const count = new Map<Player, number>([
+      [Player.RED, 0],
+      [Player.BLACK, 0]
+    ]);
+    
+    for (const piece of this.squares) {
+      if (piece) {
+        count.set(piece.player, (count.get(piece.player) || 0) + 1);
+      }
+    }
+    
+    return count;
   }
 }

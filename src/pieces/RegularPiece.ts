@@ -54,51 +54,58 @@ export class RegularPiece extends Piece {
   }
 
   /**
-   * Gets possible capture moves.
+   * Gets all possible capture moves, including multi-jump sequences.
+   * This is the public entry point.
    */
   getCaptureMoves(position: Position, board: Board): Move[] {
-    return this.getCaptureMoveHelper(position, board, []);
+    const allSequences: Move[] = [];
+    this.findCaptureSequences(position, board, [], new Set(), allSequences);
+    return allSequences;
   }
 
   /**
-   * Helper method for recursive capture move generation.
+   * Recursively finds all capture sequences from a given position.
+   * @param currentPos The current position in the jump sequence.
+   * @param board The original, unmodified board.
+   * @param path The sequence of jumps taken so far.
+   * @param capturedOnPath A Set of positions of pieces already captured to prevent loops.
+   * @param allSequences The accumulator array for all valid final move sequences.
    */
-  private getCaptureMoveHelper(position: Position, board: Board, capturedPieces: Position[]): Move[] {
-    const captures: Move[] = [];
-    
-    // Check all four diagonal directions for captures
-    for (const direction of [Direction.NORTH_WEST, Direction.NORTH_EAST, 
-      Direction.SOUTH_WEST, Direction.SOUTH_EAST]) {
-      const captureMove = this.getCaptureInDirection(position, direction, board);
-      if (captureMove && !this.isAlreadyCaptured(captureMove.captures[0]!, capturedPieces)) {
-        captures.push(captureMove);
-        
-        // Create a board with captured pieces removed for recursive check
-        const newBoard = board.removePieces([...capturedPieces, ...captureMove.captures]);
-        const newCaptured = [...capturedPieces, ...captureMove.captures];
-        
-        // Check for additional captures from the landing position
-        const additionalCaptures = this.getCaptureMoveHelper(captureMove.to, newBoard, newCaptured);
-        for (const additionalCapture of additionalCaptures) {
-          // Create multi-capture move
-          captures.push(new Move(
-            position,
-            additionalCapture.to,
-            [...captureMove.captures, ...additionalCapture.captures],
-            false
-          ));
-        }
+  private findCaptureSequences(
+    currentPos: Position,
+    board: Board,
+    path: Move[],
+    capturedOnPath: Set<string>,
+    allSequences: Move[]
+  ): void {
+    // Check all four diagonal directions for the next jump.
+    for (const direction of [Direction.NORTH_WEST, Direction.NORTH_EAST, Direction.SOUTH_WEST, Direction.SOUTH_EAST]) {
+      const opponentPos = this.getNextPosition(currentPos, direction, board.size);
+      if (!opponentPos) continue;
+
+      const landingPos = this.getNextPosition(opponentPos, direction, board.size);
+      if (!landingPos) continue;
+
+      const opponentKey = opponentPos.hash();
+      if (
+        this.hasOpponent(opponentPos, board) &&
+        board.isEmpty(landingPos) &&
+        !capturedOnPath.has(opponentKey) // Check if we've already captured this piece in this sequence
+      ) {
+        const newMove = new Move(currentPos, landingPos, [opponentPos]);
+        const newPath = [...path, newMove];
+        const newCaptured = new Set(capturedOnPath).add(opponentKey);
+
+        // This complete sequence is a valid move.
+        // We create a final Move object from the start of the sequence to the end.
+        const startPos = path.length > 0 ? path[0]!.from : currentPos;
+        const allCapturedPieces = newPath.flatMap(p => p.captures);
+        allSequences.push(new Move(startPos, landingPos, allCapturedPieces));
+
+        // Recursively check for more jumps from the new landing position.
+        this.findCaptureSequences(landingPos, board, newPath, newCaptured, allSequences);
       }
     }
-    
-    return captures;
-  }
-
-  /**
-   * Checks if a position has already been captured in this sequence.
-   */
-  private isAlreadyCaptured(position: Position, captured: Position[]): boolean {
-    return captured.some(pos => pos.equals(position));
   }
 
   /**
@@ -172,30 +179,5 @@ export class RegularPiece extends Piece {
     } else {
       return direction === 'SW' || direction === 'SE';
     }
-  }
-
-  /**
-   * Gets a capture move in a specific direction if available.
-   */
-  private getCaptureInDirection(
-    from: Position,
-    direction: Direction,
-    board: Board
-  ): Move | null {
-    // Get position of potential capture
-    const capturePos = this.getNextPosition(from, direction, board.size);
-    if (!capturePos || !board.isValidPosition(capturePos)) return null;
-    
-    // Check if there's an opponent piece to capture
-    if (!this.hasOpponent(capturePos, board)) return null;
-    
-    // Get landing position after capture
-    const landingPos = this.getNextPosition(capturePos, direction, board.size);
-    if (!landingPos || !board.isValidPosition(landingPos)) return null;
-    
-    // Check if landing position is empty
-    if (!board.isEmpty(landingPos)) return null;
-    
-    return new Move(from, landingPos, [capturePos], false);
   }
 }
