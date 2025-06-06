@@ -8,6 +8,8 @@ import { StandardRules } from '../rules/StandardRules';
 import { ValidationEngine } from '../strategies/ValidationEngine';
 import { GameOverError, InvalidMoveError } from '../errors';
 import { Piece } from '../pieces/Piece';
+import { MoveCommand } from '../commands/MoveCommand';
+import { Command } from '../commands/Command';
 
 /**
  * Main game controller that orchestrates the checkers game.
@@ -16,7 +18,8 @@ import { Piece } from '../pieces/Piece';
 export class Game {
   private board: Board;
   private currentPlayer: Player;
-  private moveHistory: Move[] = [];
+  private history: Command[] = [];
+  private redoStack: Command[] = [];
   private observers: Set<GameObserver> = new Set();
   private ruleEngine: RuleEngine;
   private validationEngine: ValidationEngine;
@@ -49,7 +52,9 @@ export class Game {
    * Gets the move history.
    */
   getHistory(): readonly Move[] {
-    return [...this.moveHistory];
+    return this.history
+      .filter(cmd => cmd instanceof MoveCommand)
+      .map(cmd => (cmd as MoveCommand).getMove());
   }
 
   /**
@@ -81,7 +86,7 @@ export class Game {
     return {
       board: this.board,
       currentPlayer: this.currentPlayer,
-      moveHistory: [...this.moveHistory],
+      moveHistory: [...this.getHistory()],
       capturedPieces: this.getCapturedPieces(),
       winner: this.getWinner(),
       isGameOver: this.isGameOver()
@@ -100,24 +105,30 @@ export class Game {
       // Validate the move using both rule engine and validation engine
       this.validateMove(move);
 
-      // Apply the move
-      const newBoard = this.applyMove(move);
+      // Create and execute command
+      const command = new MoveCommand(move);
+      const currentState = this.getGameState();
       
-      // Update game state
-      this.board = newBoard;
-      this.moveHistory.push(move);
+      if (!command.canExecute(currentState)) {
+        throw new InvalidMoveError(move, 'Move cannot be executed');
+      }
+
+      const newState = command.execute(currentState);
+      
+      // Update game state from command result
+      this.board = newState.board;
+      this.currentPlayer = newState.currentPlayer;
       this.moveCount++;
+
+      // Add command to history and clear redo stack
+      this.history.push(command);
+      this.redoStack = [];
 
       // Handle promotion if needed
       this.handlePromotion(move);
 
       // Check for game end
       this.checkGameEnd();
-
-      // Switch players if game is not over
-      if (!this.isGameOver()) {
-        this.switchPlayer();
-      }
 
       // Notify observers
       this.notifyMoveObservers(move, this.board);
@@ -168,12 +179,59 @@ export class Game {
    * Undoes the last move.
    */
   undoMove(): boolean {
-    if (this.moveHistory.length === 0) return false;
-    if (this.isGameOver()) return false;
+    if (this.history.length === 0) return false;
 
-    // This is a simplified undo - a full implementation would require
-    // storing board states or implementing proper command pattern
-    throw new Error('Undo functionality not implemented in this version');
+    // Pop the last command from history
+    const lastCommand = this.history.pop()!;
+    
+    // Push it onto redo stack
+    this.redoStack.push(lastCommand);
+    
+    // Get the previous state and update game
+    const previousState = lastCommand.undo(this.getGameState());
+    this.board = previousState.board;
+    this.currentPlayer = previousState.currentPlayer;
+    this.gameOver = previousState.isGameOver;
+    this.winner = previousState.winner;
+    this.moveCount--;
+
+    // Notify observers
+    this.notifyBoardUpdateObservers(this.board);
+    this.notifyTurnChangeObservers(this.currentPlayer);
+
+    return true;
+  }
+
+  /**
+   * Redoes the last undone move.
+   */
+  redoMove(): boolean {
+    if (this.redoStack.length === 0) return false;
+
+    // Pop command from redo stack
+    const command = this.redoStack.pop()!;
+    
+    // Execute it and push back to history
+    const newState = command.execute(this.getGameState());
+    this.history.push(command);
+    
+    // Update game state
+    this.board = newState.board;
+    this.currentPlayer = newState.currentPlayer;
+    this.moveCount++;
+
+    // Check for game end
+    this.checkGameEnd();
+
+    // Notify observers
+    this.notifyBoardUpdateObservers(this.board);
+    this.notifyTurnChangeObservers(this.currentPlayer);
+
+    if (this.isGameOver()) {
+      this.notifyGameEndObservers(this.getWinner());
+    }
+
+    return true;
   }
 
   /**
@@ -182,7 +240,8 @@ export class Game {
   reset(): void {
     this.board = this.ruleEngine.getInitialBoard();
     this.currentPlayer = Player.RED;
-    this.moveHistory = [];
+    this.history = [];
+    this.redoStack = [];
     this.gameOver = false;
     this.winner = null;
     this.moveCount = 0;
@@ -256,12 +315,6 @@ export class Game {
     this.validationEngine.validateMove(this.board, move, this.currentPlayer);
   }
 
-  /**
-   * Applies a move to the board.
-   */
-  private applyMove(move: Move): Board {
-    return move.apply(this.board);
-  }
 
   /**
    * Handles piece promotion after a move.
@@ -293,13 +346,6 @@ export class Game {
     }
   }
 
-  /**
-   * Switches to the next player.
-   */
-  private switchPlayer(): void {
-    this.currentPlayer = this.currentPlayer === Player.RED ? Player.BLACK : Player.RED;
-    this.notifyTurnChangeObservers(this.currentPlayer);
-  }
 
   /**
    * Gets captured pieces from move history.
@@ -307,7 +353,7 @@ export class Game {
   private getCapturedPieces(): Piece[] {
     // Calculate captured pieces from move history
     const captured: Piece[] = [];
-    for (const move of this.moveHistory) {
+    for (const move of this.getHistory()) {
       if (move.isCapture()) {
         // Note: In a real implementation, we'd need to track the actual captured pieces
         // For now, return an empty array since we can't reconstruct the pieces

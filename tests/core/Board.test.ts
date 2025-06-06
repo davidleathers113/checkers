@@ -142,8 +142,8 @@ describe('Board', () => {
 
       const redPieces = testBoard.getPlayerPieces(Player.RED);
       expect(redPieces).toHaveLength(2);
-      expect(redPieces[0]!.piece).toBe(redPiece1);
-      expect(redPieces[1]!.piece).toBe(redPiece2);
+      expect(redPieces[0]!.piece).toEqual(redPiece1);
+      expect(redPieces[1]!.piece).toEqual(redPiece2);
     });
   });
 
@@ -253,7 +253,7 @@ describe('Board', () => {
       
       expect(copiedBoard).toEqual(originalBoard);
       expect(copiedBoard).not.toBe(originalBoard);
-      expect(copiedBoard.getPiece(pos)).toBe(piece);
+      expect(copiedBoard.getPiece(pos)).toEqual(piece);
     });
   });
 

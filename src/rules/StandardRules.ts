@@ -184,12 +184,12 @@ export class StandardRules implements RuleEngine {
   shouldPromote(position: Position, piece: Piece): boolean {
     if (piece.isKing()) return false;
 
-    // Red pieces promote on row 0 (top)
+    // Red pieces promote on row 0 (top) - they move from bottom to top
     if (piece.player === Player.RED && position.row === 0) {
       return true;
     }
 
-    // Black pieces promote on last row (bottom)
+    // Black pieces promote on last row (bottom) - they move from top to bottom
     if (piece.player === Player.BLACK && position.row === this.boardSize - 1) {
       return true;
     }
@@ -203,22 +203,22 @@ export class StandardRules implements RuleEngine {
   getInitialBoard(): Board {
     let board = new Board(this.boardSize);
 
-    // Place red pieces (top of board)
+    // Place black pieces (top of board)
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < this.boardSize; col++) {
         const pos = new Position(row, col);
         if (pos.isDarkSquare()) {
-          board = board.setPiece(pos, new RegularPiece(Player.RED));
+          board = board.setPiece(pos, new RegularPiece(Player.BLACK));
         }
       }
     }
 
-    // Place black pieces (bottom of board)
+    // Place red pieces (bottom of board)
     for (let row = this.boardSize - 3; row < this.boardSize; row++) {
       for (let col = 0; col < this.boardSize; col++) {
         const pos = new Position(row, col);
         if (pos.isDarkSquare()) {
-          board = board.setPiece(pos, new RegularPiece(Player.BLACK));
+          board = board.setPiece(pos, new RegularPiece(Player.RED));
         }
       }
     }

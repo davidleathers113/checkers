@@ -119,13 +119,14 @@ export abstract class Piece {
   protected getPositionsInDirection(
     start: Position,
     direction: Direction,
-    maxDistance: number = 1
+    maxDistance: number = 1,
+    boardSize: number = 8
   ): Position[] {
     const positions: Position[] = [];
     let current = start;
 
     for (let i = 0; i < maxDistance; i++) {
-      const next = this.getNextPosition(current, direction);
+      const next = this.getNextPosition(current, direction, boardSize);
       if (!next) break;
       positions.push(next);
       current = next;
@@ -137,7 +138,7 @@ export abstract class Piece {
   /**
    * Helper method to get the next position in a direction.
    */
-  protected getNextPosition(position: Position, direction: Direction): Position | null {
+  protected getNextPosition(position: Position, direction: Direction, boardSize: number = 8): Position | null {
     let { row, col } = position;
 
     switch (direction) {
@@ -156,6 +157,6 @@ export abstract class Piece {
     }
 
     const newPos = new Position(row, col);
-    return newPos.isValid() ? newPos : null;
+    return newPos.isValid(boardSize) ? newPos : null;
   }
 }

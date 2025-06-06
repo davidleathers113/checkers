@@ -43,7 +43,8 @@ export class KingPiece extends Piece {
       const positionsInDirection = this.getPositionsInDirection(
         position,
         direction,
-        board.size - 1
+        board.size - 1,
+        board.size
       );
       
       for (const pos of positionsInDirection) {
@@ -153,7 +154,7 @@ export class KingPiece extends Piece {
     alreadyCaptured: Position[]
   ): Move[] {
     const captures: Move[] = [];
-    const positions = this.getPositionsInDirection(from, direction, board.size - 1);
+    const positions = this.getPositionsInDirection(from, direction, board.size - 1, board.size);
     
     let foundOpponent = false;
     let opponentPos: Position | null = null;
