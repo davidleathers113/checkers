@@ -44,11 +44,11 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
   };
 
   return (
-    <div className="config-overlay">
+    <div className="config-overlay" data-testid="game-config">
       <div className="config-panel">
         <div className="config-header">
           <h2>Game Settings</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" data-testid="config-close-button" onClick={onClose}>×</button>
         </div>
 
         <div className="config-section">
@@ -98,6 +98,7 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
                 type="radio"
                 name="boardSize"
                 value="8"
+                data-testid="board-size-8"
                 checked={config.boardSize === 8}
                 onChange={() => handleBoardSizeChange(8)}
                 disabled={config.ruleSet === 'international'}
@@ -109,6 +110,7 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
                 type="radio"
                 name="boardSize"
                 value="10"
+                data-testid="board-size-10"
                 checked={config.boardSize === 10}
                 onChange={() => handleBoardSizeChange(10)}
               />
@@ -194,6 +196,7 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
           <label className="config-checkbox">
             <input
               type="checkbox"
+              data-testid="show-move-hints-checkbox"
               checked={config.showMoveHints}
               onChange={(e) => updateConfig({ showMoveHints: e.target.checked })}
             />
@@ -202,21 +205,21 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
         </div>
 
         <div className="config-actions">
-          <button className="btn btn-secondary" onClick={resetConfig}>
+          <button className="btn btn-secondary" data-testid="reset-config-button" onClick={resetConfig}>
             Reset to Defaults
           </button>
-          <button className="btn btn-primary" onClick={onClose}>
+          <button className="btn btn-primary" data-testid="config-done-button" onClick={onClose}>
             Done
           </button>
         </div>
 
         {showConfirm && (
-          <div className="confirm-dialog">
+          <div className="confirm-dialog" data-testid="confirm-dialog">
             <div className="confirm-content">
               <p>Changing the board size or rules will start a new game. Continue?</p>
               <div className="confirm-actions">
-                <button className="btn btn-secondary" onClick={cancelChanges}>Cancel</button>
-                <button className="btn btn-primary" onClick={confirmChanges}>New Game</button>
+                <button className="btn btn-secondary" data-testid="confirm-cancel-button" onClick={cancelChanges}>Cancel</button>
+                <button className="btn btn-primary" data-testid="confirm-new-game-button" onClick={confirmChanges}>New Game</button>
               </div>
             </div>
           </div>

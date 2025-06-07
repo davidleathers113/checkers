@@ -18,9 +18,9 @@ export function GameStatus({
   const playerColorClass = currentPlayer === Player.RED ? 'red' : 'black';
   
   return (
-    <div className="game-status">
+    <div className="game-status" data-testid="game-status">
       {gameOver ? (
-        <div className="game-over">
+        <div className="game-over" data-testid="game-over-message">
           {winner ? (
             `Game Over - ${playerName(winner)} Wins!`
           ) : (
@@ -29,10 +29,10 @@ export function GameStatus({
         </div>
       ) : (
         <>
-          <div className={`current-player ${playerColorClass}`}>
+          <div className={`current-player ${playerColorClass}`} data-testid="current-player">
             Current Turn: {playerName(currentPlayer)}
           </div>
-          <div className="move-count">Move {moveCount + 1}</div>
+          <div className="move-count" data-testid="move-count">Move {moveCount + 1}</div>
         </>
       )}
     </div>

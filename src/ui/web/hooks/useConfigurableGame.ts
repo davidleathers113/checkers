@@ -19,12 +19,6 @@ interface AnimationState {
   promotedPieces: Set<string>;
 }
 
-interface UIState {
-  selectedPosition: Position | null;
-  validMoves: Move[];
-  errorMessage: string | null;
-  animationState: AnimationState;
-}
 
 interface CombinedGameState extends CoreGameState {
   selectedPosition: Position | null;
@@ -65,8 +59,39 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   }));
   const lastMoveRef = useRef<Move | null>(null);
   const lastPromotedRef = useRef<Position | null>(null);
+  
+  // Use state for selection to properly trigger re-renders
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const [validMoves, setValidMoves] = useState<Move[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Cache the game state to avoid infinite loops
+  const cachedStateRef = useRef<CoreGameState | null>(null);
+  const stateVersionRef = useRef(0);
 
-  const getSnapshot = useCallback((): CoreGameState => gameRef.current.getGameState(), []);
+  // Update game instance when config changes
+  useEffect(() => {
+    gameRef.current = new Game({ 
+      ruleEngine: createRuleEngine(config.ruleSet, config.boardSize)
+    });
+    setSelectedPosition(null);
+    setValidMoves([]);
+    setErrorMessage(null);
+    cachedStateRef.current = null;
+    stateVersionRef.current++;
+  }, [config.ruleSet, config.boardSize]);
+
+  const getSnapshot = useCallback((): CoreGameState => {
+    // Return cached state if available
+    if (cachedStateRef.current) {
+      return cachedStateRef.current;
+    }
+    
+    // Create and cache new state
+    const state = gameRef.current.getGameState();
+    cachedStateRef.current = state;
+    return state;
+  }, []);
 
   const subscribe = useCallback((callback: () => void): (() => void) => {
     const game = gameRef.current;
@@ -74,14 +99,28 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     const observer: Partial<GameObserver> = {
       onMove: (move: Move) => {
         lastMoveRef.current = move;
+        cachedStateRef.current = null; // Clear cache
         callback();
       },
-      onGameEnd: callback,
-      onTurnChange: callback,
-      onInvalidMove: callback,
-      onBoardUpdate: callback,
+      onGameEnd: () => {
+        cachedStateRef.current = null; // Clear cache
+        callback();
+      },
+      onTurnChange: () => {
+        cachedStateRef.current = null; // Clear cache
+        callback();
+      },
+      onInvalidMove: () => {
+        cachedStateRef.current = null; // Clear cache
+        callback();
+      },
+      onBoardUpdate: () => {
+        cachedStateRef.current = null; // Clear cache
+        callback();
+      },
       onPiecePromoted: (position: Position) => {
         lastPromotedRef.current = position;
+        cachedStateRef.current = null; // Clear cache
         callback();
       }
     };
@@ -92,15 +131,10 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
 
   const gameState = useSyncExternalStore(subscribe, getSnapshot);
   
-  const [uiState, setUiState] = useState<UIState>({
-    selectedPosition: null,
-    validMoves: [],
-    errorMessage: null,
-    animationState: {
-      movingPieces: new Map(),
-      capturedPieces: new Set(),
-      promotedPieces: new Set()
-    }
+  const [animationState, setAnimationState] = useState<AnimationState>({
+    movingPieces: new Map(),
+    capturedPieces: new Set(),
+    promotedPieces: new Set()
   });
 
   // Get animation duration based on config
@@ -113,37 +147,28 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       const key = move.from.hash();
       
       // Add moving piece
-      setUiState(prev => ({
+      setAnimationState(prev => ({
         ...prev,
-        animationState: {
-          ...prev.animationState,
-          movingPieces: new Map([[key, { from: move.from, to: move.to }]])
-        }
+        movingPieces: new Map([[key, { from: move.from, to: move.to }]])
       }));
 
       // Handle captures
       if (move.captures.length > 0) {
         setTimeout(() => {
           const capturedKeys = move.captures.map(c => c.hash());
-          setUiState(prev => ({
+          setAnimationState(prev => ({
             ...prev,
-            animationState: {
-              ...prev.animationState,
-              capturedPieces: new Set(capturedKeys)
-            }
+            capturedPieces: new Set(capturedKeys)
           }));
         }, animationDuration / 2); // Delay capture animation
       }
 
       // Clear animations after delay
       setTimeout(() => {
-        setUiState(prev => ({
-          ...prev,
-          animationState: {
-            movingPieces: new Map(),
-            capturedPieces: new Set(),
-            promotedPieces: prev.animationState.promotedPieces
-          }
+        setAnimationState(prev => ({
+          movingPieces: new Map(),
+          capturedPieces: new Set(),
+          promotedPieces: prev.promotedPieces
         }));
         lastMoveRef.current = null;
       }, animationDuration * 1.5);
@@ -154,21 +179,15 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   useEffect(() => {
     if (lastPromotedRef.current) {
       const pos = lastPromotedRef.current;
-      setUiState(prev => ({
+      setAnimationState(prev => ({
         ...prev,
-        animationState: {
-          ...prev.animationState,
-          promotedPieces: new Set([...prev.animationState.promotedPieces, pos.hash()])
-        }
+        promotedPieces: new Set([...prev.promotedPieces, pos.hash()])
       }));
 
       setTimeout(() => {
-        setUiState(prev => ({
+        setAnimationState(prev => ({
           ...prev,
-          animationState: {
-            ...prev.animationState,
-            promotedPieces: new Set()
-          }
+          promotedPieces: new Set()
         }));
         lastPromotedRef.current = null;
       }, animationDuration * 2);
@@ -182,40 +201,28 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     const piece = game.getBoard().getPiece(position);
 
     if (piece && piece.player === game.getCurrentPlayer()) {
-      const validMoves = game.getPossibleMoves(position);
-      setUiState(prev => ({
-        ...prev,
-        selectedPosition: position,
-        validMoves,
-        errorMessage: null,
-      }));
-    } else if (uiState.selectedPosition) {
-      const move = uiState.validMoves.find(m => m.to.equals(position));
+      const moves = game.getPossibleMoves(position);
+      setSelectedPosition(position);
+      setValidMoves(moves);
+      setErrorMessage(null);
+    } else if (selectedPosition) {
+      const move = validMoves.find(m => m.to.equals(position));
       if (move) {
         try {
           game.makeMove(move);
-          setUiState(prev => ({ 
-            ...prev,
-            selectedPosition: null, 
-            validMoves: [], 
-            errorMessage: null 
-          }));
+          setSelectedPosition(null);
+          setValidMoves([]);
+          setErrorMessage(null);
         } catch (error) {
-          setUiState(prev => ({ 
-            ...prev, 
-            errorMessage: error instanceof Error ? error.message : String(error) 
-          }));
+          setErrorMessage(error instanceof Error ? error.message : String(error));
         }
       } else {
-        setUiState(prev => ({ 
-          ...prev,
-          selectedPosition: null, 
-          validMoves: [], 
-          errorMessage: null 
-        }));
+        setSelectedPosition(null);
+        setValidMoves([]);
+        setErrorMessage(null);
       }
     }
-  }, [uiState.selectedPosition, uiState.validMoves]);
+  }, [selectedPosition, validMoves]);
 
   const newGame = useCallback((boardSize?: 8 | 10, ruleSet?: 'standard' | 'international' | 'crazy'): void => {
     const rules = ruleSet || config.ruleSet;
@@ -225,26 +232,21 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       ruleEngine: createRuleEngine(rules, size)
     });
     
-    setUiState({
-      selectedPosition: null,
-      validMoves: [],
-      errorMessage: null,
-      animationState: {
-        movingPieces: new Map(),
-        capturedPieces: new Set(),
-        promotedPieces: new Set()
-      }
+    setSelectedPosition(null);
+    setValidMoves([]);
+    setErrorMessage(null);
+    setAnimationState({
+      movingPieces: new Map(),
+      capturedPieces: new Set(),
+      promotedPieces: new Set()
     });
   }, [config.ruleSet, config.boardSize]);
   
   const undoMove = useCallback((): void => {
     if (gameRef.current.undoMove()) {
-      setUiState(prev => ({
-        ...prev,
-        selectedPosition: null,
-        validMoves: [],
-        errorMessage: null
-      }));
+      setSelectedPosition(null);
+      setValidMoves([]);
+      setErrorMessage(null);
     }
   }, []);
   
@@ -252,8 +254,17 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     // Note: redoMove not yet implemented in Game class
   }, []);
 
+  // Combine game state with UI state
+  const combinedGameState: CombinedGameState = {
+    ...gameState,
+    selectedPosition,
+    validMoves,
+    errorMessage,
+    animationState
+  };
+
   return {
-    gameState: { ...gameState, ...uiState },
+    gameState: combinedGameState,
     actions: { selectPosition, undoMove, redoMove, newGame },
     canUndo: gameState.moveHistory.length > 0,
     canRedo: false,

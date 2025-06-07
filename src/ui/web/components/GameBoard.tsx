@@ -57,8 +57,13 @@ export function GameBoard({
     }
   }
 
+  const boardStyle = {
+    gridTemplateColumns: `repeat(${board.size}, 1fr)`,
+    gridTemplateRows: `repeat(${board.size}, 1fr)`
+  };
+
   return (
-    <div className="game-board">
+    <div className="game-board" data-testid="game-board" style={boardStyle}>
       {squares}
     </div>
   );

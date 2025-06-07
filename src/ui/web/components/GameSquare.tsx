@@ -31,10 +31,15 @@ export function GameSquare({
   if (isValidMove) className += ' valid-move';
 
   return (
-    <div className={className} onClick={onClick}>
+    <div 
+      className={className} 
+      data-testid={`game-square-${position.row}-${position.col}`}
+      onClick={onClick}
+    >
       {piece && (
         <GamePiece 
           piece={piece} 
+          position={position}
           isMoving={isMoving}
           isCaptured={isCaptured}
           isPromoted={isPromoted}

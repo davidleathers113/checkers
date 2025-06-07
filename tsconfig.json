@@ -28,6 +28,6 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": ["src/**/*", "tests/**/*", "examples/**/*"],
+  "include": ["src/**/*", "tests/**/*", "examples/**/*", "playwright/**/*"],
   "exclude": ["node_modules", "dist"]
 }

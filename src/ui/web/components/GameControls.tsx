@@ -18,9 +18,10 @@ export function GameControls({
   gameOver
 }: GameControlsProps): React.JSX.Element {
   return (
-    <div className="game-controls">
+    <div className="game-controls" data-testid="game-controls">
       <button 
         className="btn btn-primary" 
+        data-testid="new-game-button"
         onClick={onNewGame}
       >
         New Game
@@ -28,6 +29,7 @@ export function GameControls({
       
       <button 
         className="btn btn-secondary" 
+        data-testid="undo-button"
         onClick={onUndo}
         disabled={!canUndo || gameOver}
       >
@@ -36,6 +38,7 @@ export function GameControls({
       
       <button 
         className="btn btn-secondary" 
+        data-testid="redo-button"
         onClick={onRedo}
         disabled={!canRedo || gameOver}
       >

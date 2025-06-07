@@ -37,9 +37,10 @@ function GameAppContent(): React.JSX.Element {
 
   return (
     <div className={appClass}>
-      <div className="game-container">
+      <main className="game-container" role="main">
         <button 
           className="settings-btn" 
+          data-testid="settings-button"
           onClick={() => setShowConfig(true)}
           aria-label="Game Settings"
         >
@@ -65,7 +66,7 @@ function GameAppContent(): React.JSX.Element {
         />
         
         {gameState.errorMessage && (
-          <div className="error-message">
+          <div className="error-message" data-testid="error-message">
             {gameState.errorMessage}
           </div>
         )}
@@ -85,7 +86,7 @@ function GameAppContent(): React.JSX.Element {
             onNewGame={handleNewGame}
           />
         )}
-      </div>
+      </main>
     </div>
   );
 }
