@@ -3,99 +3,67 @@ import { Board } from '../core/Board';
 import { Move } from '../core/Move';
 import { Player } from '../types';
 import { InvalidMoveError } from '../errors';
+import { RuleEngine } from '../rules/RuleEngine'; // Import RuleEngine
 
 /**
  * Validates that mandatory captures are taken when available.
  */
 export class MandatoryCaptureValidator extends BaseMoveValidator {
-  constructor() {
+  private readonly ruleEngine: RuleEngine;
+
+  constructor(ruleEngine: RuleEngine) { // Accept RuleEngine instance
     super(20, 'MandatoryCaptureValidator');
+    this.ruleEngine = ruleEngine;
   }
 
   validateMove(board: Board, move: Move, player: Player): boolean {
-    // Get all possible capture moves for the player
-    const availableCaptures = this.getAllCaptureMoves(board, player);
-    
-    if (availableCaptures.length === 0) {
-      // No captures available, any valid move is allowed
+    // Ask the rule engine if captures are mandatory for this player
+    if (!this.ruleEngine.areCapturesMandatory(board, player)) {
+      // If not mandatory, this validator has no further checks.
+      // However, if the move IS a capture, it should still be valid on its own.
+      // If it's NOT a capture, it's fine.
       return true;
     }
 
-    // If captures are available, the move must be a capture
+    // Captures ARE mandatory. Get the list of mandatory moves from the rule engine.
+    // The rule engine is responsible for determining what constitutes a "mandatory" capture
+    // (e.g., simple existence of any capture, or longest capture sequence).
+    const mandatoryMoves = this.ruleEngine.getMandatoryMoves(board, player);
+
+    // If mandatoryMoves is empty, it implies a contradiction with areCapturesMandatory returning true,
+    // or that areCapturesMandatory has a more nuanced meaning (e.g. captures *could* be made).
+    // For safety, if no specific mandatory moves are returned, allow any move that is a capture.
+    if (mandatoryMoves.length === 0) {
+        if (!move.isCapture()) {
+            throw new InvalidMoveError(
+                move,
+                'A capture is mandatory, but no specific mandatory capture moves were identified. Move must be a capture.'
+            );
+        }
+        return true; // Allow any capture if no specific ones are listed as mandatory but captures are generally required
+    }
+
+    // If captures are mandatory and specific mandatory moves are listed,
+    // the current move must be one of them.
     if (!move.isCapture()) {
       throw new InvalidMoveError(
         move, 
-        'Captures are mandatory when available'
+        'Captures are mandatory and this move is not a capture.'
       );
     }
 
-    // Check if this move is among the valid capture moves
-    const isValidCapture = availableCaptures.some(capture => 
-      this.movesAreEquivalent(move, capture)
-    );
-
-    if (!isValidCapture) {
+    const isAmongMandatory = mandatoryMoves.some(m => m.equals(move));
+    if (!isAmongMandatory) {
       throw new InvalidMoveError(
         move, 
-        'Move is not a valid mandatory capture'
+        'Move is not among the required mandatory capture moves.'
       );
-    }
-
-    // Check for maximum capture rule
-    if (this.hasMaximumCaptureRule()) {
-      const maxCaptures = Math.max(...availableCaptures.map(m => m.getCaptureCount()));
-      if (move.getCaptureCount() < maxCaptures) {
-        throw new InvalidMoveError(
-          move, 
-          `Must capture maximum possible pieces (${maxCaptures})`
-        );
-      }
     }
 
     return true;
   }
 
-  /**
-   * Gets all possible capture moves for a player.
-   */
-  private getAllCaptureMoves(board: Board, player: Player): Move[] {
-    const captures: Move[] = [];
-    const playerPieces = board.getPlayerPieces(player);
-
-    for (const { position } of playerPieces) {
-      const piece = board.getPiece(position);
-      if (piece) {
-        const captureMoves = piece.getCaptureMoves(position, board);
-        captures.push(...captureMoves);
-      }
-    }
-
-    return captures;
-  }
-
-  /**
-   * Checks if two moves are equivalent (same from/to, captures can vary in order).
-   */
-  private movesAreEquivalent(move1: Move, move2: Move): boolean {
-    if (!move1.from.equals(move2.from) || !move1.to.equals(move2.to)) {
-      return false;
-    }
-
-    if (move1.captures.length !== move2.captures.length) {
-      return false;
-    }
-
-    // Check if all captures in move1 are present in move2
-    return move1.captures.every(cap1 => 
-      move2.captures.some(cap2 => cap1.equals(cap2))
-    );
-  }
-
-  /**
-   * Determines if maximum capture rule should be enforced.
-   * This could be configurable based on rule engine settings.
-   */
-  private hasMaximumCaptureRule(): boolean {
-    return true; // Standard checkers enforces maximum captures
-  }
+  // The methods getAllCaptureMoves, movesAreEquivalent, and hasMaximumCaptureRule
+  // are no longer needed here as their logic is now encapsulated within the RuleEngine's
+  // areCapturesMandatory and getMandatoryMoves methods.
 }

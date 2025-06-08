@@ -1,43 +1,25 @@
-import { Player, Direction } from '../types';
+import { Player, Direction, PieceType } from '../types';
 import { Position } from '../core/Position';
 import { Board } from '../core/Board';
 import { Move } from '../core/Move';
+import { RuleEngine } from '../rules/RuleEngine';
 
 /**
  * Abstract base class for all game pieces.
  * Extend this class to create custom piece types.
  */
 export abstract class Piece {
+  abstract readonly type: PieceType;
+
   constructor(
     public readonly player: Player,
     protected readonly id: string = Math.random().toString(36).substr(2, 9)
   ) {}
 
   /**
-   * Checks if this piece can move from one position to another.
-   */
-  abstract canMove(from: Position, to: Position, board: Board): boolean;
-
-  /**
-   * Gets all possible non-capture moves from a position.
-   */
-  abstract getPossibleMoves(position: Position, board: Board): Position[];
-
-  /**
-   * Gets all possible capture moves from a position.
-   */
-  abstract getCaptureMoves(position: Position, board: Board): Move[];
-
-  /**
    * Creates a copy of this piece.
    */
   abstract copy(): Piece;
-
-  /**
-   * Promotes this piece (e.g., regular to king).
-   * Default implementation returns self (no promotion).
-   */
-  abstract promote(): Piece;
 
   /**
    * Gets the value of this piece for evaluation.
@@ -67,7 +49,24 @@ export abstract class Piece {
   /**
    * Checks if this piece is a king.
    */
-  abstract isKing(): boolean;
+  public isKing(): boolean {
+    return this.type === PieceType.KING;
+  }
+
+  /**
+   * Gets all valid moves (capture and non-capture) for this piece from the given position,
+   * according to the provided rule engine.
+   * The rule engine will determine if captures are mandatory.
+   */
+  public getAllValidMoves(position: Position, board: Board, ruleEngine: RuleEngine): Move[] {
+    const nonCaptureMoves = ruleEngine.getNonCaptureMovesForPiece(this, position, board);
+    const captureMoves = ruleEngine.getCaptureMovesForPiece(this, position, board);
+
+    // Depending on game rules (usually enforced by RuleEngine or Game),
+    // if captureMoves has items, nonCaptureMoves might be ignored.
+    // This method simply returns all theoretically possible moves of both types.
+    return [...nonCaptureMoves, ...captureMoves];
+  }
 
   /**
    * Checks if this piece belongs to the given player.

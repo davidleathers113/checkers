@@ -7,6 +7,7 @@ import { GameState, Player } from '../types';
  */
 export class MoveCommand extends BaseCommand {
   private previousState: GameState | null = null;
+  private actualPiecesCapturedInThisCommand: Piece[] = [];
 
   constructor(private readonly move: Move) {
     super();
@@ -24,12 +25,22 @@ export class MoveCommand extends BaseCommand {
     };
 
     // Apply the move to create new state
+    this.actualPiecesCapturedInThisCommand = []; // Clear for this execution
+    if (this.move.isCapture()) {
+      for (const capturedPosition of this.move.captures) {
+        const capturedPiece = state.board.getPiece(capturedPosition);
+        if (capturedPiece) {
+          this.actualPiecesCapturedInThisCommand.push(capturedPiece);
+        }
+      }
+    }
     const newBoard = this.move.apply(state.board);
     
     const newState: GameState = {
       ...state,
       board: newBoard,
       moveHistory: [...state.moveHistory, this.move],
+      capturedPieces: [...state.capturedPieces, ...this.actualPiecesCapturedInThisCommand],
       // Current player switching would be handled by Game class
       currentPlayer: state.currentPlayer === Player.RED ? Player.BLACK : Player.RED
     };

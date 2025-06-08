@@ -5,96 +5,42 @@ import { Player } from '../types';
 import { InvalidMoveError } from '../errors';
 
 /**
- * Validates that moves are diagonal and within piece constraints.
+ * Validates that moves are diagonal.
+ * Detailed path, distance, and piece-specific constraints are now primarily handled by RuleEngine.
  */
 export class DiagonalMoveValidator extends BaseMoveValidator {
   constructor() {
     super(5, 'DiagonalMoveValidator');
   }
 
-  override validateMove(board: Board, move: Move, _player: Player): boolean {
-    const piece = board.getPiece(move.from);
-    if (!piece) return false;
-
-    // For multi-step moves, validate each step is diagonal
-    if (move.steps.length > 1) {
+  override validateMove(_board: Board, move: Move, _player: Player): boolean {
+    // For multi-step moves (captures), each step should be diagonal.
+    // The Move object itself should ensure its steps are diagonal if it's constructed that way.
+    // If a move has steps, we assume the RuleEngine generated it correctly.
+    // This validator focuses on single-step moves or the overall nature if no steps.
+    if (move.steps.length > 0) {
       for (const step of move.steps) {
         if (!step.from.isOnSameDiagonalAs(step.to)) {
-          throw new InvalidMoveError(move, 'All steps must be diagonal');
+          throw new InvalidMoveError(move, `Step from ${step.from} to ${step.to} must be diagonal.`);
         }
       }
-      // Multi-step validation is handled by the rule engine
+      // If all steps are diagonal, the overall "move" (from start of first step to end of last step)
+      // will also be diagonal if it's a valid checkers jump sequence.
       return true;
     }
 
-    // Check if move is diagonal
+    // For single-segment moves (non-captures or single captures not detailed with steps)
     if (!move.isDiagonal()) {
-      throw new InvalidMoveError(move, 'Checkers pieces must move diagonally');
+      throw new InvalidMoveError(move, 'Move must be diagonal.');
     }
 
-    const distance = move.getDistance();
-    if (distance < 1) {
-      throw new InvalidMoveError(move, 'Invalid move distance');
-    }
-
-    // For regular pieces, check distance constraints
-    if (!piece.isKing()) {
-      const maxDistance = move.isCapture() ? 2 : 1;
-      if (distance > maxDistance) {
-        throw new InvalidMoveError(
-          move, 
-          `Regular pieces can only move ${maxDistance} square${maxDistance > 1 ? 's' : ''}`
-        );
-      }
-
-      // Check direction for regular pieces
-      if (!this.isValidDirectionForRegularPiece(move, piece.player)) {
-        throw new InvalidMoveError(move, 'Regular pieces can only move forward');
-      }
-    } else {
-      // Kings can move any distance, but path must be clear (except for captures)
-      if (!this.isPathValidForKing(board, move)) {
-        throw new InvalidMoveError(move, 'Path is blocked for king move');
-      }
-    }
+    // Distance and piece-specific direction/path checks are now deferred to RuleEngine's
+    // move generation and its primary validateMove method.
+    // This validator's role is simplified to the fundamental diagonal requirement.
 
     return true;
   }
 
-  /**
-   * Checks if the move direction is valid for a regular piece.
-   */
-  private isValidDirectionForRegularPiece(move: Move, player: Player): boolean {
-    const direction = move.getDirection();
-    if (!direction) return false;
-
-    if (player === Player.RED) {
-      // Red moves toward row 0 (up the board)
-      return direction === 'NW' || direction === 'NE';
-    } else {
-      // Black moves toward higher row numbers (down the board)
-      return direction === 'SW' || direction === 'SE';
-    }
-  }
-
-  /**
-   * Validates that the path is clear for a king move.
-   */
-  private isPathValidForKing(board: Board, move: Move): boolean {
-    const betweenPositions = move.from.getPositionsBetween(move.to);
-    
-    if (move.isCapture()) {
-      // For captures, only captured pieces should be in the path
-      const occupiedPositions = betweenPositions.filter(pos => !board.isEmpty(pos));
-      const capturedPositions = move.captures;
-      
-      // Check that all occupied positions are captured
-      return occupiedPositions.every(pos => 
-        capturedPositions.some(capture => capture.equals(pos))
-      );
-    } else {
-      // For regular moves, path must be completely clear
-      return betweenPositions.every(pos => board.isEmpty(pos));
-    }
-  }
+  // Removed private methods: isValidDirectionForRegularPiece, isPathValidForKing
+  // as this level of detail is now handled by the RuleEngine.
 }

@@ -2,9 +2,9 @@ import { Board } from './Board';
 import { Move } from './Move';
 import { Position } from './Position';
 import { GameObserver } from './GameObserver';
-import { Player, GameState, GameConfig } from '../types';
+import { Player, GameState, GameConfig, GameVariant } from '../types';
 import { RuleEngine } from '../rules/RuleEngine';
-import { StandardRules } from '../rules/StandardRules';
+import { AmericanCheckersRules } from '../rules/AmericanCheckersRules';
 import { ValidationEngine } from '../strategies/ValidationEngine';
 import { GameOverError, InvalidMoveError } from '../errors';
 import { Piece } from '../pieces/Piece';
@@ -26,12 +26,28 @@ export class Game {
   private gameOver: boolean = false;
   private winner: Player | null = null;
   private moveCount: number = 0;
+  private currentCapturedPieces: Piece[] = [];
+  private readonly variant: GameVariant;
 
-  constructor(config: Partial<GameConfig> = {}) {
-    this.ruleEngine = config.ruleEngine || new StandardRules();
+  constructor(config: Partial<GameConfig & { variant?: GameVariant }> = {}) {
+    this.variant = config.variant || GameVariant.STANDARD_AMERICAN;
+    if (config.ruleEngine) {
+      this.ruleEngine = config.ruleEngine;
+    } else {
+      this.ruleEngine = this._createRuleEngine(this.variant);
+    }
     this.validationEngine = new ValidationEngine();
+
+    // Configure ValidationEngine based on the RuleEngine
+    const requiredValidators = this.ruleEngine.getRequiredValidators();
+    this.validationEngine.clearValidators(); // Clear any defaults
+    requiredValidators.forEach(validator => {
+      this.validationEngine.addValidator(validator);
+    });
+
     this.currentPlayer = config.startingPlayer || Player.RED;
     this.board = this.ruleEngine.getInitialBoard();
+    this.currentCapturedPieces = [];
   }
 
   /**
@@ -68,7 +84,7 @@ export class Game {
    * Checks if the game is over.
    */
   isGameOver(): boolean {
-    return this.gameOver || this.ruleEngine.isGameOver(this.board);
+    return this.gameOver || this.ruleEngine.isGameOver(this.board, this.currentPlayer);
   }
 
   /**
@@ -76,7 +92,7 @@ export class Game {
    */
   getWinner(): Player | null {
     if (!this.isGameOver()) return null;
-    return this.winner || this.ruleEngine.getWinner(this.board);
+    return this.winner || this.ruleEngine.getWinner(this.board, this.currentPlayer);
   }
 
   /**
@@ -87,7 +103,7 @@ export class Game {
       board: this.board,
       currentPlayer: this.currentPlayer,
       moveHistory: [...this.getHistory()],
-      capturedPieces: this.getCapturedPieces(),
+      capturedPieces: this.currentCapturedPieces,
       winner: this.getWinner(),
       isGameOver: this.isGameOver()
     };
@@ -118,6 +134,7 @@ export class Game {
       // Update game state from command result
       this.board = newState.board;
       this.currentPlayer = newState.currentPlayer;
+      this.currentCapturedPieces = newState.capturedPieces;
       this.moveCount++;
 
       // Add command to history and clear redo stack
@@ -148,15 +165,22 @@ export class Game {
   }
 
   /**
-   * Gets possible moves from a position.
+   * Gets possible moves from a position using the new piece delegation mechanism.
    */
   getPossibleMoves(position: Position): Move[] {
-    if (this.isGameOver()) return [];
+    if (this.isGameOver()) {
+      return [];
+    }
     
     const piece = this.board.getPiece(position);
-    if (!piece || piece.player !== this.currentPlayer) return [];
 
-    return this.ruleEngine.getPossibleMoves(this.board, position);
+    // Check if the piece exists and belongs to the current player
+    if (!piece || piece.player !== this.currentPlayer) {
+      return [];
+    }
+
+    // Delegate to the piece's getAllValidMoves, which in turn delegates to the RuleEngine
+    return piece.getAllValidMoves(position, this.board, this.ruleEngine);
   }
 
   /**
@@ -193,6 +217,7 @@ export class Game {
     this.currentPlayer = previousState.currentPlayer;
     this.gameOver = previousState.isGameOver;
     this.winner = previousState.winner;
+    this.currentCapturedPieces = previousState.capturedPieces;
     this.moveCount--;
 
     // Notify observers
@@ -218,6 +243,7 @@ export class Game {
     // Update game state
     this.board = newState.board;
     this.currentPlayer = newState.currentPlayer;
+    this.currentCapturedPieces = newState.capturedPieces;
     this.moveCount++;
 
     // Check for game end
@@ -245,6 +271,7 @@ export class Game {
     this.gameOver = false;
     this.winner = null;
     this.moveCount = 0;
+    this.currentCapturedPieces = [];
 
     this.notifyBoardUpdateObservers(this.board);
   }
@@ -340,9 +367,9 @@ export class Game {
    * Checks if the game has ended.
    */
   private checkGameEnd(): void {
-    if (this.ruleEngine.isGameOver(this.board)) {
+    if (this.ruleEngine.isGameOver(this.board, this.currentPlayer)) {
       this.gameOver = true;
-      this.winner = this.ruleEngine.getWinner(this.board);
+      this.winner = this.ruleEngine.getWinner(this.board, this.currentPlayer);
     }
   }
 
@@ -351,16 +378,7 @@ export class Game {
    * Gets captured pieces from move history.
    */
   private getCapturedPieces(): Piece[] {
-    // Calculate captured pieces from move history
-    const captured: Piece[] = [];
-    for (const move of this.getHistory()) {
-      if (move.isCapture()) {
-        // Note: In a real implementation, we'd need to track the actual captured pieces
-        // For now, return an empty array since we can't reconstruct the pieces
-        // This would require storing captured pieces with each move
-      }
-    }
-    return captured;
+    return this.currentCapturedPieces;
   }
 
   /**
@@ -400,5 +418,17 @@ export class Game {
         observer.onBoardUpdate(board);
       }
     });
+  }
+
+  private _createRuleEngine(variant: GameVariant): RuleEngine {
+    switch (variant) {
+      case GameVariant.STANDARD_AMERICAN:
+        return new AmericanCheckersRules();
+      // case GameVariant.INTERNATIONAL_DRAUGHTS: // Example for future
+      //   return new InternationalDraughtsRules();
+      default:
+        console.warn(`Unsupported game variant: ${variant}. Defaulting to STANDARD_AMERICAN.`);
+        return new AmericanCheckersRules();
+    }
   }
 }

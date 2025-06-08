@@ -5,7 +5,8 @@ import { Player } from '../types';
 import { InvalidMoveError } from '../errors';
 
 /**
- * Validates capture moves according to standard rules.
+ * Validates basic properties of capture moves.
+ * Detailed path and sequence validation is now handled by RuleEngine.
  */
 export class CaptureValidator extends BaseMoveValidator {
   constructor() {
@@ -13,92 +14,47 @@ export class CaptureValidator extends BaseMoveValidator {
   }
 
   override shouldValidate(_board: Board, move: Move, _player: Player): boolean {
+    // This validator should only run if the move claims to be a capture.
     return move.isCapture();
   }
 
   override validateMove(board: Board, move: Move, player: Player): boolean {
+    // This check is technically redundant due to shouldValidate, but good for clarity.
     if (!move.isCapture()) return true;
+
+    if (move.captures.length === 0) {
+      throw new InvalidMoveError(move, 'A capture move must specify at least one captured piece position.');
+    }
 
     // Validate each captured position
     for (const capturePos of move.captures) {
-      // Check if capture position is valid
+      // Check if capture position is valid on the board
       if (!board.isValidPosition(capturePos)) {
-        throw new InvalidMoveError(move, `Invalid capture position: ${capturePos}`);
+        throw new InvalidMoveError(move, `Invalid capture position: ${capturePos}. Position is off-board.`);
       }
 
-      // Check if there's a piece to capture
+      // Check if there's a piece to capture at the specified position
       const capturedPiece = board.getPiece(capturePos);
       if (!capturedPiece) {
-        throw new InvalidMoveError(move, `No piece to capture at position: ${capturePos}`);
+        throw new InvalidMoveError(move, `No piece to capture at specified position: ${capturePos}.`);
       }
 
-      // Check if captured piece belongs to opponent
+      // Check if captured piece belongs to an opponent
       if (capturedPiece.player === player) {
-        throw new InvalidMoveError(move, 'Cannot capture own piece');
+        throw new InvalidMoveError(move, `Cannot capture own piece at ${capturePos}.`);
       }
     }
 
-    // Validate that the move path includes all captures
-    if (!this.validateCapturePath(board, move)) {
-      throw new InvalidMoveError(move, 'Invalid capture path');
-    }
+    // The detailed validation of the jump path, whether the piece can make that jump,
+    // if the landing square is empty, and if the sequence of jumps (for multi-captures)
+    // is valid according to piece type (regular vs. king) and variant rules,
+    // is now the responsibility of the RuleEngine's getCaptureMovesForPiece method
+    // (which generates valid captures) and the RuleEngine's primary validateMove method.
+    // This validator focuses on the fundamental aspects of a capture claim.
 
     return true;
   }
 
-  /**
-   * Validates that the capture path is correct.
-   */
-  private validateCapturePath(board: Board, move: Move): boolean {
-    const piece = board.getPiece(move.from);
-    if (!piece) return false;
-
-    // For multi-step moves, each step's validation is handled by the rule engine
-    if (move.steps.length > 1) {
-      return true;
-    }
-
-    // For regular pieces, validate single jump
-    if (!piece.isKing() && move.captures.length === 1) {
-      return this.validateSingleJump(move);
-    }
-
-    // For kings or multi-captures, validate the entire path
-    return this.validateMultiCapturePath(board, move);
-  }
-
-  /**
-   * Validates a single jump capture.
-   */
-  private validateSingleJump(move: Move): boolean {
-    const distance = move.getDistance();
-    if (distance !== 2) return false;
-
-    // The captured piece should be exactly in the middle
-    const capturePos = move.captures[0]!;
-    const betweenPositions = move.from.getPositionsBetween(move.to);
-    
-    return betweenPositions.length === 1 && 
-           betweenPositions[0]!.equals(capturePos);
-  }
-
-  /**
-   * Validates a multi-capture path.
-   */
-  private validateMultiCapturePath(_board: Board, move: Move): boolean {
-    // For multi-captures, we need to validate the entire sequence
-    // This is a simplified validation - more complex logic would be needed
-    // for full multi-jump validation
-    
-    const betweenPositions = move.from.getPositionsBetween(move.to);
-    
-    // Each captured position should be on the path
-    for (const capturePos of move.captures) {
-      if (!betweenPositions.some(pos => pos.equals(capturePos))) {
-        return false;
-      }
-    }
-
-    return true;
-  }
+  // Removed private methods: validateCapturePath, validateSingleJump, validateMultiCapturePath
+  // as this level of detail is now handled by the RuleEngine.
 }

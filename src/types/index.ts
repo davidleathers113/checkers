@@ -10,6 +10,20 @@ export enum Direction {
   SOUTH_EAST = 'SE'
 }
 
+/**
+ * Enum defining the supported game variants.
+ */
+export enum GameVariant {
+  STANDARD_AMERICAN = 'STANDARD_AMERICAN',
+  // INTERNATIONAL_DRAUGHTS = 'INTERNATIONAL_DRAUGHTS', // Example for later
+}
+
+export enum PieceType {
+  REGULAR = 'REGULAR',
+  KING = 'KING',
+  // Add other types here for variants if needed, e.g., DAME, WOLF
+}
+
 export interface GameState {
   board: Board;
   currentPlayer: Player;
