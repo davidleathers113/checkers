@@ -27,9 +27,16 @@ export interface GameConfig {
   ui?: GameUI;
 }
 
+export interface MoveStep {
+  from: Position;
+  to: Position;
+  captured?: Position;
+}
+
 import type { Board } from '../core/Board';
 import type { Move } from '../core/Move';
 import type { Piece } from '../pieces/Piece';
+import type { Position } from '../core/Position';
 import type { RuleEngine } from '../rules/RuleEngine';
 import type { MoveValidator } from '../strategies/MoveValidator';
 import type { GameUI } from '../ui/GameUI';

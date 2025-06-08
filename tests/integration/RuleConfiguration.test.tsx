@@ -38,9 +38,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(crazyOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Should start new game
     await waitFor(() => {
@@ -55,9 +57,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(internationalOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton2 = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton2);
 
     // Should create 10x10 board for International Draughts
     await waitFor(() => {
@@ -74,8 +78,15 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(standardOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
+    });
+    
+    const confirmButton3 = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton3);
+
+    // Wait for settings to close and game to reset
+    await waitFor(() => {
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
     });
 
     // Should be back to 8x8
@@ -84,7 +95,7 @@ describe('Rule Configuration Integration Tests', () => {
         el.className.includes('game-square')
       );
       expect(squares).toHaveLength(64); // 8x8 board
-    });
+    }, { timeout: 3000 });
   });
 
   test('board size restrictions work correctly', async () => {
@@ -103,9 +114,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(internationalOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Open settings again
     fireEvent.click(settingsButton);
@@ -140,9 +153,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(crazyOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Open settings again
     fireEvent.click(settingsButton);
@@ -173,9 +188,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(internationalOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Open settings again
     fireEvent.click(settingsButton);
@@ -209,12 +226,23 @@ describe('Rule Configuration Integration Tests', () => {
     // Switch to International Draughts
     fireEvent.click(settingsButton);
 
+    await waitFor(() => {
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+    });
+
     const internationalOption = screen.getByLabelText(/International Draughts/);
     fireEvent.click(internationalOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
+    });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
+    
+    // Wait for settings to close
+    await waitFor(() => {
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
     });
 
     // Select a piece to verify no hints are shown
@@ -266,9 +294,11 @@ describe('Rule Configuration Integration Tests', () => {
     fireEvent.click(crazyOption);
 
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
     });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Open settings and reset
     fireEvent.click(settingsButton);

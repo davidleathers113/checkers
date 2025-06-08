@@ -1,0 +1,150 @@
+# Dependencies and Package Managers
+node_modules/
+vendor/
+.venv/
+venv/
+pip-cache/
+.bundle/
+bower_components/
+jspm_packages/
+.pnp.*
+.yarn/*
+
+# Build Outputs
+dist/
+build/
+out/
+target/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.class
+*.o
+*.so
+*.dll
+*.exe
+*.bundle.js
+*.min.js
+*.map
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Testing and Coverage
+coverage/
+.coverage
+*.lcov
+.nyc_output/
+test-results/
+jest-results/
+pytest_cache/
+.pytest_cache/
+playwright-report/
+test-results/
+**/__mocks__/
+
+# Visual Test Snapshots
+**/visual.spec.ts-snapshots/
+**/*.spec.ts-snapshots/
+**/screenshots/
+**/baseline/
+
+# Logs and Temporary Files
+*.log
+logs/
+*.tmp
+*.temp
+*.cache
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Documentation Build
+docs/_build/
+docs/_site/
+site/
+.docusaurus/
+typedoc/
+
+# Environment and Secrets
+.env
+.env.*
+*.pem
+*.key
+*.cert
+secrets/
+credentials/
+.npmrc
+.netrc
+
+# Project-Specific Exclusions
+CLAUDE.md
+repomix-output.md
+repomix-output-*.md
+*.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Development Planning and AI Assistant Files
+IMPLEMENTATION_PLAN.md
+PERFORMANCE_IMPROVEMENTS.md
+.taskmaster/
+*.ai.md
+*.copilot.md
+*.cursor.md
+
+# CI/CD and Deployment
+.github/workflows/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+deployment/
+scripts/deploy/
+
+# Generated Files
+*.generated.*
+*.d.ts
+src/**/*.js
+src/**/*.jsx
+tests/**/*.js
+
+# Large Binary Assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.mp4
+*.mp3
+*.wav
+*.pdf
+*.zip
+*.tar
+*.gz
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Cache and Build Artifacts
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.turbo/
+.webpack/

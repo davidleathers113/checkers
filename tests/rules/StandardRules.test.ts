@@ -280,4 +280,154 @@ describe('StandardRules', () => {
       expect(rules.isValidBoardState(wrongSizeBoard)).toBe(false);
     });
   });
+
+  describe('multi-jump captures', () => {
+    it('should validate a double jump capture move', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      
+      // Set up a double jump scenario
+      // Red at (5,2) can jump black at (4,3) to (3,4), then black at (2,5) to (1,6)
+      board = board.setPiece(new Position(5, 2), redPiece);
+      board = board.setPiece(new Position(4, 3), blackPiece1);
+      board = board.setPiece(new Position(2, 5), blackPiece2);
+      
+      // Create multi-step move
+      const steps = [
+        { from: new Position(5, 2), to: new Position(3, 4), captured: new Position(4, 3) },
+        { from: new Position(3, 4), to: new Position(1, 6), captured: new Position(2, 5) }
+      ];
+      
+      const move = new Move(
+        new Position(5, 2),
+        new Position(1, 6),
+        [new Position(4, 3), new Position(2, 5)],
+        false,
+        steps
+      );
+      
+      expect(rules.validateMove(board, move)).toBe(true);
+    });
+
+    it('should reject multi-jump if intermediate square is occupied', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      const blockingPiece = new RegularPiece(Player.RED);
+      
+      board = board.setPiece(new Position(5, 2), redPiece);
+      board = board.setPiece(new Position(4, 3), blackPiece1);
+      board = board.setPiece(new Position(3, 4), blockingPiece); // Blocks landing
+      board = board.setPiece(new Position(2, 5), blackPiece2);
+      
+      const steps = [
+        { from: new Position(5, 2), to: new Position(3, 4), captured: new Position(4, 3) },
+        { from: new Position(3, 4), to: new Position(1, 6), captured: new Position(2, 5) }
+      ];
+      
+      const move = new Move(
+        new Position(5, 2),
+        new Position(1, 6),
+        [new Position(4, 3), new Position(2, 5)],
+        false,
+        steps
+      );
+      
+      expect(rules.validateMove(board, move)).toBe(false);
+    });
+
+    it('should generate multi-jump captures correctly', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      
+      // Set up for double jump
+      board = board.setPiece(new Position(5, 2), redPiece);
+      board = board.setPiece(new Position(4, 3), blackPiece1);
+      board = board.setPiece(new Position(2, 5), blackPiece2);
+      
+      const moves = rules.getPossibleMoves(board, new Position(5, 2));
+      
+      // Should include the multi-jump capture
+      const multiJump = moves.find(m => m.getCaptureCount() === 2);
+      expect(multiJump).toBeDefined();
+      expect(multiJump?.from.equals(new Position(5, 2))).toBe(true);
+      expect(multiJump?.to.equals(new Position(1, 6))).toBe(true);
+      expect(multiJump?.captures.length).toBe(2);
+    });
+
+    it('should enforce maximum capture rule in multi-jumps', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      const blackPiece3 = new RegularPiece(Player.BLACK);
+      
+      // Red can capture 1 piece or 2 pieces - should force 2
+      board = board.setPiece(new Position(5, 2), redPiece);
+      board = board.setPiece(new Position(4, 3), blackPiece1);
+      board = board.setPiece(new Position(2, 5), blackPiece2);
+      board = board.setPiece(new Position(4, 1), blackPiece3); // Single capture option
+      
+      const mandatory = rules.getMandatoryMoves(board, Player.RED);
+      
+      // Should only allow the double capture
+      expect(mandatory.every(m => m.getCaptureCount() === 2)).toBe(true);
+    });
+
+    it('should handle triple jump captures', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      const blackPiece3 = new RegularPiece(Player.BLACK);
+      
+      // Set up triple jump scenario
+      board = board.setPiece(new Position(7, 0), redPiece);
+      board = board.setPiece(new Position(6, 1), blackPiece1);
+      board = board.setPiece(new Position(4, 3), blackPiece2);
+      board = board.setPiece(new Position(2, 5), blackPiece3);
+      
+      const moves = rules.getPossibleMoves(board, new Position(7, 0));
+      
+      // Should find the triple jump
+      const tripleJump = moves.find(m => m.getCaptureCount() === 3);
+      expect(tripleJump).toBeDefined();
+      expect(tripleJump?.steps.length).toBe(3);
+    });
+
+    it('should apply multi-jump move correctly to board', () => {
+      const redPiece = new RegularPiece(Player.RED);
+      const blackPiece1 = new RegularPiece(Player.BLACK);
+      const blackPiece2 = new RegularPiece(Player.BLACK);
+      
+      board = board.setPiece(new Position(5, 2), redPiece);
+      board = board.setPiece(new Position(4, 3), blackPiece1);
+      board = board.setPiece(new Position(2, 5), blackPiece2);
+      
+      const steps = [
+        { from: new Position(5, 2), to: new Position(3, 4), captured: new Position(4, 3) },
+        { from: new Position(3, 4), to: new Position(1, 6), captured: new Position(2, 5) }
+      ];
+      
+      const move = new Move(
+        new Position(5, 2),
+        new Position(1, 6),
+        [new Position(4, 3), new Position(2, 5)],
+        false,
+        steps
+      );
+      
+      const newBoard = move.apply(board);
+      
+      // Original position should be empty
+      expect(newBoard.isEmpty(new Position(5, 2))).toBe(true);
+      
+      // Final position should have the piece
+      expect(newBoard.getPiece(new Position(1, 6))?.player).toBe(Player.RED);
+      
+      // Captured pieces should be removed
+      expect(newBoard.isEmpty(new Position(4, 3))).toBe(true);
+      expect(newBoard.isEmpty(new Position(2, 5))).toBe(true);
+    });
+  });
 });

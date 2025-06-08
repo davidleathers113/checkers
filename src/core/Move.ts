@@ -1,17 +1,41 @@
 import { Position } from './Position';
 import { Board } from './Board';
+import { MoveStep } from '../types';
 
 /**
  * Immutable class representing a game move.
  */
 export class Move {
+  public readonly steps: ReadonlyArray<MoveStep>;
+
   constructor(
     public readonly from: Position,
     public readonly to: Position,
     public readonly captures: ReadonlyArray<Position> = [],
-    public readonly isPromotion: boolean = false
+    public readonly isPromotion: boolean = false,
+    steps?: ReadonlyArray<MoveStep>
   ) {
     Object.freeze(this.captures);
+    
+    // If steps are provided, use them; otherwise create a single step
+    if (steps) {
+      this.steps = steps;
+    } else {
+      // Create a single step from the simple move
+      const step: MoveStep = { from, to };
+      
+      // For captures, try to infer the captured position
+      if (captures.length === 1 && from.isOnSameDiagonalAs(to)) {
+        const distance = from.diagonalDistanceTo(to);
+        if (distance === 2) {
+          step.captured = captures[0];
+        }
+      }
+      
+      this.steps = [step];
+    }
+    
+    Object.freeze(this.steps);
     Object.freeze(this);
   }
 
@@ -62,7 +86,32 @@ export class Move {
    * Applies this move to a board (returns new Board).
    */
   apply(board: Board): Board {
-    // Move the piece
+    // For multi-step moves, apply each step in sequence
+    if (this.steps.length > 1) {
+      let tempBoard = board;
+      
+      for (const step of this.steps) {
+        // Move the piece for this step
+        tempBoard = tempBoard.movePiece(step.from, step.to);
+        
+        // Remove captured piece for this step if any
+        if (step.captured) {
+          tempBoard = tempBoard.removePiece(step.captured);
+        }
+      }
+      
+      // Handle promotion at the final position
+      if (this.isPromotion) {
+        const piece = tempBoard.getPiece(this.to);
+        if (piece) {
+          tempBoard = tempBoard.setPiece(this.to, piece.promote());
+        }
+      }
+      
+      return tempBoard;
+    }
+    
+    // For single-step moves, use the original logic
     let newBoard = board.movePiece(this.from, this.to);
     
     // Remove captured pieces
@@ -189,11 +238,45 @@ export class Move {
       throw new Error('Multi-capture requires at least 2 positions');
     }
     
+    // Create steps for multi-capture move
+    const steps: MoveStep[] = [];
+    for (let i = 0; i < positions.length - 1; i++) {
+      const from = positions[i]!;
+      const to = positions[i + 1]!;
+      const step: MoveStep = { from, to };
+      
+      // Find the captured piece for this step
+      if (i < captures.length) {
+        step.captured = captures[i];
+      }
+      
+      steps.push(step);
+    }
+    
     return new Move(
       positions[0]!,
       positions[positions.length - 1]!,
-      captures
+      captures,
+      false,
+      steps
     );
+  }
+  
+  /**
+   * Creates a multi-step move from explicit steps.
+   */
+  static createMultiStep(steps: MoveStep[]): Move {
+    if (steps.length === 0) {
+      throw new Error('Multi-step move requires at least one step');
+    }
+    
+    const from = steps[0]!.from;
+    const to = steps[steps.length - 1]!.to;
+    const captures = steps
+      .filter(step => step.captured)
+      .map(step => step.captured!);
+    
+    return new Move(from, to, captures, false, steps);
   }
 
   /**

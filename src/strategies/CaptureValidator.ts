@@ -53,6 +53,11 @@ export class CaptureValidator extends BaseMoveValidator {
     const piece = board.getPiece(move.from);
     if (!piece) return false;
 
+    // For multi-step moves, each step's validation is handled by the rule engine
+    if (move.steps.length > 1) {
+      return true;
+    }
+
     // For regular pieces, validate single jump
     if (!piece.isKing() && move.captures.length === 1) {
       return this.validateSingleJump(move);

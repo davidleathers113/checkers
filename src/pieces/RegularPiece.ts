@@ -100,7 +100,18 @@ export class RegularPiece extends Piece {
         // We create a final Move object from the start of the sequence to the end.
         const startPos = path.length > 0 ? path[0]!.from : currentPos;
         const allCapturedPieces = newPath.flatMap(p => p.captures);
-        allSequences.push(new Move(startPos, landingPos, allCapturedPieces));
+        
+        // Create proper steps for multi-step moves
+        if (newPath.length > 1) {
+          const steps = newPath.map(move => ({
+            from: move.from,
+            to: move.to,
+            captured: move.captures[0]
+          }));
+          allSequences.push(new Move(startPos, landingPos, allCapturedPieces, false, steps));
+        } else {
+          allSequences.push(new Move(startPos, landingPos, allCapturedPieces));
+        }
 
         // Recursively check for more jumps from the new landing position.
         this.findCaptureSequences(landingPos, board, newPath, newCaptured, allSequences);

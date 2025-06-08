@@ -27,6 +27,11 @@ export class StandardRules implements RuleEngine {
     const piece = board.getPiece(move.from);
     if (!piece) return false;
 
+    // For multi-step moves, validate each step
+    if (move.steps.length > 1) {
+      return this.validateMultiStepMove(board, move, piece);
+    }
+
     // Check basic move validity
     if (!piece.canMove(move.from, move.to, board)) {
       return false;
@@ -248,6 +253,79 @@ export class StandardRules implements RuleEngine {
       return false;
     }
 
+    return true;
+  }
+
+  /**
+   * Validates a multi-step move by checking each step.
+   */
+  private validateMultiStepMove(board: Board, move: Move, piece: Piece): boolean {
+    let tempBoard = board;
+    let currentPos = move.from;
+    const player = piece.player;
+    
+    // Validate each step
+    for (const step of move.steps) {
+      // Verify we're at the expected position
+      if (!step.from.equals(currentPos)) {
+        return false;
+      }
+      
+      // Get the piece at current position
+      const currentPiece = tempBoard.getPiece(step.from);
+      if (!currentPiece || currentPiece.player !== player) {
+        return false;
+      }
+      
+      // Check if the step is diagonal
+      if (!step.from.isOnSameDiagonalAs(step.to)) {
+        return false;
+      }
+      
+      // Check if destination is empty
+      if (!tempBoard.isEmpty(step.to)) {
+        return false;
+      }
+      
+      // For capture steps, validate the capture
+      if (step.captured) {
+        const distance = step.from.diagonalDistanceTo(step.to);
+        if (distance !== 2) {
+          return false;
+        }
+        
+        const capturedPiece = tempBoard.getPiece(step.captured);
+        if (!capturedPiece || capturedPiece.player === player) {
+          return false;
+        }
+        
+        // Verify captured position is between from and to
+        const middlePositions = step.from.getPositionsBetween(step.to);
+        if (middlePositions.length !== 1 || !middlePositions[0]!.equals(step.captured)) {
+          return false;
+        }
+        
+        // Apply the capture to the temporary board
+        tempBoard = tempBoard.removePiece(step.captured);
+      } else {
+        // Non-capture steps must be single diagonal moves
+        const distance = step.from.diagonalDistanceTo(step.to);
+        if (distance !== 1) {
+          return false;
+        }
+      }
+      
+      // Move the piece on the temporary board
+      tempBoard = tempBoard.movePiece(step.from, step.to);
+      currentPos = step.to;
+    }
+    
+    // Verify the move is mandatory if there are captures available
+    const mandatoryMoves = this.getMandatoryMoves(board, player);
+    if (mandatoryMoves.length > 0) {
+      return mandatoryMoves.some(mandatory => mandatory.equals(move));
+    }
+    
     return true;
   }
 

@@ -16,6 +16,17 @@ export class DiagonalMoveValidator extends BaseMoveValidator {
     const piece = board.getPiece(move.from);
     if (!piece) return false;
 
+    // For multi-step moves, validate each step is diagonal
+    if (move.steps.length > 1) {
+      for (const step of move.steps) {
+        if (!step.from.isOnSameDiagonalAs(step.to)) {
+          throw new InvalidMoveError(move, 'All steps must be diagonal');
+        }
+      }
+      // Multi-step validation is handled by the rule engine
+      return true;
+    }
+
     // Check if move is diagonal
     if (!move.isDiagonal()) {
       throw new InvalidMoveError(move, 'Checkers pieces must move diagonally');

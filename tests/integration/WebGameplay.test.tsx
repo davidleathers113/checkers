@@ -92,24 +92,7 @@ describe('Web Gameplay Integration Tests', () => {
       expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
     });
 
-    // Open settings and disable move hints
-    const settingsButton = screen.getByLabelText('Game Settings');
-    fireEvent.click(settingsButton);
-
-    const moveHintsCheckbox = screen.getByLabelText('Show move hints') as HTMLInputElement;
-    
-    // If hints are enabled by default, disable them
-    if (moveHintsCheckbox.checked) {
-      fireEvent.click(moveHintsCheckbox);
-      await waitFor(() => {
-        expect(moveHintsCheckbox.checked).toBe(false);
-      });
-    }
-
-    const doneButton = screen.getByText('Done');
-    fireEvent.click(doneButton);
-
-    // Select a piece - should not show move hints
+    // Select a piece first to see default behavior (hints should be on by default)
     const squares = screen.getAllByRole('generic').filter(el => 
       el.className.includes('game-square')
     );
@@ -121,29 +104,49 @@ describe('Web Gameplay Integration Tests', () => {
       expect(redPieceSquare).toHaveClass('selected');
     });
 
+    // Should show move hints by default
+    let validMoveSquares = squares.filter(square => 
+      square.className.includes('valid-move')
+    );
+    expect(validMoveSquares.length).toBeGreaterThan(0);
+    
+    // Deselect the piece
+    fireEvent.click(squares[0]!);
+
+    // Open settings and disable move hints
+    const settingsButton = screen.getByLabelText('Game Settings');
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+    });
+
+    const moveHintsCheckbox = screen.getByLabelText('Show move hints') as HTMLInputElement;
+    expect(moveHintsCheckbox.checked).toBe(true); // Should be on by default
+    
+    fireEvent.click(moveHintsCheckbox);
+    await waitFor(() => {
+      expect(moveHintsCheckbox.checked).toBe(false);
+    });
+
+    const doneButton = screen.getByText('Done');
+    fireEvent.click(doneButton);
+
+    // Give time for settings to close
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Select a piece again - should not show move hints
+    fireEvent.click(redPieceSquare!);
+    
+    await waitFor(() => {
+      expect(redPieceSquare).toHaveClass('selected');
+    });
+
     // Check that no valid move indicators are shown
-    const validMoveSquares = squares.filter(square => 
+    validMoveSquares = squares.filter(square => 
       square.className.includes('valid-move')
     );
     expect(validMoveSquares).toHaveLength(0);
-
-    // Re-enable move hints
-    fireEvent.click(settingsButton);
-    fireEvent.click(moveHintsCheckbox);
-    
-    await waitFor(() => {
-      expect(moveHintsCheckbox.checked).toBe(true);
-    });
-
-    fireEvent.click(doneButton);
-
-    // Now should show move hints
-    await waitFor(() => {
-      const validMoveSquaresWithHints = squares.filter(square => 
-        square.className.includes('valid-move')
-      );
-      expect(validMoveSquaresWithHints.length).toBeGreaterThan(0);
-    });
   });
 
   test('error handling for invalid moves', async () => {
@@ -199,15 +202,21 @@ describe('Web Gameplay Integration Tests', () => {
     const settingsButton = screen.getByLabelText('Game Settings');
     fireEvent.click(settingsButton);
 
-    // Switch to International Draughts (10x10)
-    const internationalOption = screen.getByLabelText(/International Draughts/);
-    fireEvent.click(internationalOption);
-
-    // Confirm the change
     await waitFor(() => {
-      const confirmButton = screen.getByText('New Game');
-      fireEvent.click(confirmButton);
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
     });
+
+    // First select 10x10 board size
+    const board10x10 = screen.getByTestId('board-size-10');
+    fireEvent.click(board10x10);
+
+    // This should show confirmation dialog
+    await waitFor(() => {
+      expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
+    });
+    
+    const confirmButton = screen.getByTestId('confirm-new-game-button');
+    fireEvent.click(confirmButton);
 
     // Should now have 10x10 = 100 squares
     await waitFor(() => {

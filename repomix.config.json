@@ -1,0 +1,101 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "version": "2.0",
+  "input": {
+    "maxFileSize": 5000000,
+    "encoding": "utf-8",
+    "respectGitignore": true,
+    "followSymlinks": false,
+    "include": [
+      "src/**/*.{ts,tsx}",
+      "tests/**/*.{test,spec}.{ts,tsx}",
+      "examples/**/*.ts",
+      "playwright/tests/**/*.spec.ts",
+      "*.{json,md,yml,yaml,js}",
+      "!*.min.js",
+      "!*.bundle.js",
+      "!dist/**",
+      "!playwright-report/**",
+      "!test-results/**"
+    ],
+    "ignore": {
+      "useGitignore": true,
+      "useDefaultPatterns": true,
+      "customPatterns": [
+        "node_modules/**",
+        "dist/**",
+        "playwright-report/**",
+        "test-results/**",
+        "coverage/**",
+        "*.log",
+        "*.tmp",
+        ".env*",
+        "**/__mocks__/**",
+        "**/playwright/**/visual.spec.ts-snapshots/**",
+        "CLAUDE.md",
+        "repomix-output.md"
+      ]
+    }
+  },
+  "processing": {
+    "contentFilters": {
+      "removeTestData": false,
+      "removeMockData": false,
+      "removeGeneratedCode": ["*.generated.*", "*.d.ts"],
+      "normalizeWhitespace": true
+    },
+    "codeProcessing": {
+      "removeComments": false,
+      "removeEmptyLines": false,
+      "trimTrailingWhitespace": true,
+      "normalizeLineEndings": "lf",
+      "preserveStringLiterals": true
+    },
+    "contextEnhancement": {
+      "extractImports": true,
+      "extractExports": true,
+      "extractDependencies": true,
+      "extractTodos": true,
+      "includeGitInfo": true,
+      "includeFileStats": true
+    }
+  },
+  "output": {
+    "filePath": "repomix-output.md",
+    "style": "markdown",
+    "format": "structured",
+    "compress": true,
+    "splitThreshold": 2000000,
+    "headerText": "# Extensible Checkers Game\n\nA TypeScript-based extensible checkers game implementation with clean architecture principles. Features pluggable rule systems, multiple UI implementations (Console and Web), and comprehensive testing.\n\n## Architecture Highlights\n- Strategy pattern for customizable game rules\n- Observer pattern for state management\n- Command pattern for move history\n- Strict TypeScript with no implicit any\n- 80% test coverage thresholds\n",
+    "fileSummary": true,
+    "directoryStructure": true,
+    "showLineNumbers": true,
+    "includeEmptyFiles": false,
+    "groupByType": true,
+    "sortBy": "priority",
+    "tableOfContents": true,
+    "includeMetrics": true
+  },
+  "security": {
+    "enableChecks": true,
+    "excludeSuspiciousFiles": true,
+    "hideSensitiveData": true,
+    "scanForSecrets": true,
+    "secretPatterns": [
+      "api[_-]?key",
+      "secret[_-]?key",
+      "password",
+      "token",
+      "credential",
+      "private[_-]?key"
+    ]
+  },
+  "tokens": {
+    "enableCounting": true,
+    "provider": "tiktoken",
+    "model": "gpt-4o",
+    "includeBreakdown": true,
+    "warningThreshold": 100000,
+    "errorThreshold": 200000
+  }
+}

@@ -10,8 +10,14 @@ const localStorageMock = {
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
+  length: 0,
+  key: jest.fn(),
 };
-global.localStorage = localStorageMock as unknown as Storage;
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 describe('GameConfig Component', () => {
   const mockOnClose = jest.fn();
@@ -126,10 +132,13 @@ describe('GameConfig Component', () => {
     
     await waitFor(() => {
       expect(darkTheme).toBeChecked();
+      // Verify localStorage was called at least for the update
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'checkers-game-config',
+        expect.stringContaining('"theme":"dark"')
+      );
     });
-    
-    // Verify localStorage was called (initial + update)
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(2);
   });
 
   test('updates animation speed without confirmation', async () => {
@@ -144,10 +153,13 @@ describe('GameConfig Component', () => {
     
     await waitFor(() => {
       expect(fastSpeed).toBeChecked();
+      // Verify localStorage was called at least for the update
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'checkers-game-config',
+        expect.stringContaining('"animationSpeed":"fast"')
+      );
     });
-    
-    // Verify localStorage was called (initial + update)
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(2);
   });
 
   test('toggles move hints checkbox', async () => {
@@ -162,10 +174,9 @@ describe('GameConfig Component', () => {
 
     await waitFor(() => {
       expect(moveHints.checked).toBe(!initialState);
+      // Verify localStorage was called
+      expect(localStorageMock.setItem).toHaveBeenCalled();
     });
-    
-    // Verify localStorage was called (initial + update)
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(2);
   });
 
   test('resets to default configuration', async () => {

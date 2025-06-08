@@ -13,6 +13,32 @@ export class BasicMoveValidator extends BaseMoveValidator {
   }
 
   validateMove(board: Board, move: Move, player: Player): boolean {
+    // For multi-step moves, validate basic properties of each step
+    if (move.steps.length > 1) {
+      for (const step of move.steps) {
+        if (!board.isValidPosition(step.from)) {
+          throw new InvalidMoveError(move, 'Invalid position in move steps');
+        }
+        if (!board.isValidPosition(step.to)) {
+          throw new InvalidMoveError(move, 'Invalid position in move steps');
+        }
+      }
+      
+      // Check if there's a piece at the starting position
+      const piece = board.getPiece(move.from);
+      if (!piece) {
+        throw new InvalidMoveError(move, 'No piece at source position');
+      }
+      
+      // Check if the piece belongs to the current player
+      if (piece.player !== player) {
+        throw new InvalidMoveError(move, 'Piece does not belong to current player');
+      }
+      
+      // Further validation is handled by the rule engine
+      return true;
+    }
+
     // Check if move positions are valid
     if (!board.isValidPosition(move.from)) {
       throw new InvalidMoveError(move, 'Source position is invalid');

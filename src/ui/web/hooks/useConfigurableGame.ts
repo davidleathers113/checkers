@@ -64,10 +64,10 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Move[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [gameVersion, setGameVersion] = useState(0); // Track game instance changes
   
   // Cache the game state to avoid infinite loops
   const cachedStateRef = useRef<CoreGameState | null>(null);
-  const stateVersionRef = useRef(0);
 
   // Update game instance when config changes
   useEffect(() => {
@@ -78,7 +78,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     setValidMoves([]);
     setErrorMessage(null);
     cachedStateRef.current = null;
-    stateVersionRef.current++;
+    setGameVersion(v => v + 1); // Increment version to trigger re-subscribe
   }, [config.ruleSet, config.boardSize]);
 
   const getSnapshot = useCallback((): CoreGameState => {
@@ -127,7 +127,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     
     game.addObserver(observer as GameObserver);
     return () => game.removeObserver(observer as GameObserver);
-  }, []);
+  }, [gameVersion]); // Re-subscribe when game version changes
 
   const gameState = useSyncExternalStore(subscribe, getSnapshot);
   
@@ -240,6 +240,10 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       capturedPieces: new Set(),
       promotedPieces: new Set()
     });
+    
+    // Force a state update by clearing the cache and incrementing version
+    cachedStateRef.current = null;
+    setGameVersion(v => v + 1); // Trigger re-subscribe
   }, [config.ruleSet, config.boardSize]);
   
   const undoMove = useCallback((): void => {
