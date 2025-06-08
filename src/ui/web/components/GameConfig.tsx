@@ -20,11 +20,14 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
   };
 
   const handleRuleSetChange = (ruleSet: 'standard' | 'international' | 'crazy'): void => {
-    if (ruleSet === 'international' && config.boardSize === 8) {
-      setPendingChanges({ boardSize: 10, ruleSet });
-      setShowConfirm(true);
-    } else if (ruleSet !== config.ruleSet) {
-      setPendingChanges({ ruleSet });
+    if (ruleSet !== config.ruleSet) {
+      if (ruleSet === 'international' && config.boardSize === 8) {
+        setPendingChanges({ boardSize: 10, ruleSet });
+      } else if ((ruleSet === 'standard' || ruleSet === 'crazy') && config.boardSize === 10) {
+        setPendingChanges({ boardSize: 8, ruleSet });
+      } else {
+        setPendingChanges({ ruleSet });
+      }
       setShowConfirm(true);
     }
   };

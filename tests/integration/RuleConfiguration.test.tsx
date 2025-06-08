@@ -211,10 +211,34 @@ describe('Rule Configuration Integration Tests', () => {
       expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
     });
 
-    // Disable move hints in standard rules
+    // First ensure we're on Standard checkers (8x8)
     const settingsButton = screen.getByLabelText('Game Settings');
     fireEvent.click(settingsButton);
 
+    await waitFor(() => {
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+    });
+
+    // Check if we need to switch to Standard first
+    const standardOption = screen.getByLabelText(/Standard Checkers/);
+    const isStandardChecked = (standardOption as HTMLInputElement).checked;
+    
+    if (!isStandardChecked) {
+      fireEvent.click(standardOption);
+      await waitFor(() => {
+        expect(screen.getByText(/Changing the board size or rules will start a new game/)).toBeInTheDocument();
+      });
+      const confirmBtn = screen.getByTestId('confirm-new-game-button');
+      fireEvent.click(confirmBtn);
+      
+      // Re-open settings
+      fireEvent.click(settingsButton);
+      await waitFor(() => {
+        expect(screen.getByText('Game Settings')).toBeInTheDocument();
+      });
+    }
+
+    // Disable move hints
     const moveHintsCheckbox = screen.getByLabelText('Show move hints') as HTMLInputElement;
     if (moveHintsCheckbox.checked) {
       fireEvent.click(moveHintsCheckbox);
