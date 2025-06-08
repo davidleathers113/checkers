@@ -1,3 +1,3 @@
 export { RuleEngine } from './RuleEngine';
-export { StandardRules } from './StandardRules';
+export { AmericanCheckersRules } from './AmericanCheckersRules';
 export { CustomRulesBase } from './CustomRulesBase';
