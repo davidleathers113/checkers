@@ -43,10 +43,17 @@ interface. As of the latest cleanup pass:
 - Validation unified onto a single path (`ValidationEngine`), eliminating the
   previously duplicated inline rule logic.
 - Captured-piece tracking and redo wired through to the web UI.
+- **Jump Your Own Man** variant (`src/rules/JumpOwnRules.ts`): hop over your own
+  pieces without capturing them; selectable in the UI.
+- **AI opponent** (`src/ai/`): negamax + alpha-beta, rule-engine-agnostic, with
+  Easy/Medium/Hard difficulty; integrated as a "vs Computer" mode.
+- **Teaching aids**: mandatory-capture highlighting, a Hint button (AI-suggested
+  move), and a How-to-Play panel tailored to the active rule set.
+- **Production-ready**: PWA manifest/icon for tablet install, `npm run preview`,
+  and deploy config (`render.yaml`, `DEPLOYMENT.md`).
 
 ## Possible next steps (not scheduled)
 
-- **AI opponent**: a minimax player built on `Game.getAllPossibleMoves()`,
-  integrated through the existing turn system with selectable difficulty.
-- **Persistence**: save/restore games and user preferences (local storage).
-- **Additional variants**: more `CustomRulesBase` examples and UI toggles.
+- **Persistence**: save/restore games in progress (preferences already persist).
+- **Online play**: the Command/Observer design leaves room for networked moves.
+- **More variants**: additional `CustomRulesBase` examples and UI toggles.
