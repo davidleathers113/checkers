@@ -139,7 +139,7 @@ describe('Performance Tests', () => {
         try {
           game.makeMove(moves[0]!);
           movesMade++;
-        } catch (error) {
+        } catch {
           // Skip invalid moves
           break;
         }
@@ -189,7 +189,7 @@ describe('Performance Tests', () => {
       if (moves.length > 0) {
         try {
           game.makeMove(moves[0]!);
-        } catch (error) {
+        } catch {
           // Skip invalid moves
           break;
         }
@@ -210,7 +210,7 @@ describe('Performance Tests', () => {
       if (moves.length > 0) {
         try {
           game.makeMove(moves[0]!);
-        } catch (error) {
+        } catch {
           // Skip invalid moves
           continue;
         }
