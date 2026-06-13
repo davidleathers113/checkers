@@ -13,8 +13,9 @@
   --surface-2: #f4ead7;
   --surface-line: #e6d8bf;
   --ink: #3b2a1b;
-  --ink-soft: #8a7560;
-  --ink-faint: #b6a48c;
+  /* Muted inks kept dark enough for WCAG AA (>=4.5:1) on the cream surfaces. */
+  --ink-soft: #6a5946;
+  --ink-faint: #6f5d49;
 
   /* Table / felt atmosphere */
   --felt-1: #4a2f1c;
@@ -693,9 +694,9 @@ body::before {
 .help-btn,
 .sound-btn {
   position: absolute;
-  top: 22px;
-  width: 42px;
-  height: 42px;
+  top: 20px;
+  width: 44px;
+  height: 44px;
   border-radius: 13px;
   background: linear-gradient(180deg, #fff, var(--surface-2));
   border: 1px solid var(--surface-line);
@@ -867,8 +868,9 @@ body::before {
   --surface-2: #1a2029;
   --surface-line: #333d49;
   --ink: #eef2f7;
-  --ink-soft: #9aa6b3;
-  --ink-faint: #66727f;
+  /* Light enough on the dark surfaces to clear WCAG AA. */
+  --ink-soft: #b3bdc8;
+  --ink-faint: #a4afba;
   --felt-1: #161b22;
   --felt-2: #0b0e13;
   --frame-1: #2a323d;

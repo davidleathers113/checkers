@@ -49,7 +49,7 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
 
   return (
     <div className="config-overlay" data-testid="game-config">
-      <div className="config-panel">
+      <div className="config-panel" role="dialog" aria-modal="true" aria-label="Game Settings">
         <div className="config-header">
           <h2>Game Settings</h2>
           <button className="close-btn" data-testid="config-close-button" onClick={onClose}>×</button>
