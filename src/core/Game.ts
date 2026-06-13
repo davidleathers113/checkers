@@ -29,6 +29,9 @@ export class Game {
 
   constructor(config: Partial<GameConfig> = {}) {
     this.ruleEngine = config.ruleEngine || new StandardRules();
+    // Optional cross-cutting validators a host can opt into via
+    // getValidationEngine()/setValidationEngine(); empty by default so it does
+    // not impose standard-rule constraints on custom RuleEngine variants.
     this.validationEngine = new ValidationEngine();
     this.currentPlayer = config.startingPlayer || Player.RED;
     this.board = this.ruleEngine.getInitialBoard();
