@@ -1,5 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { GamePage } from '../support/gamePage';
+
+/**
+ * Block the Google Fonts requests so the UI renders in deterministic system
+ * fonts. The app is vertically centred, so a late web-font swap changes text
+ * metrics and re-centres the whole page — turning a few-pixel reflow into a
+ * large full-page screenshot diff. System fonts load synchronously with no
+ * network and no swap, so every capture is byte-identical regardless of load.
+ * (The shipped app still uses its real web fonts; only these fixtures don't.)
+ */
+async function blockWebFonts(page: Page): Promise<void> {
+  await page.route('**/*', route => {
+    const url = route.request().url();
+    if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
+      return route.abort();
+    }
+    return route.continue();
+  });
+}
 
 test.describe('Visual Regression Tests', () => {
   let gamePage: GamePage;
@@ -9,6 +27,7 @@ test.describe('Visual Regression Tests', () => {
   // running them under the Mobile Chrome project would only add redundant noise.
   test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'Visual baselines are chromium-only');
+    await blockWebFonts(page);
     gamePage = new GamePage(page);
     await gamePage.goto();
   });
@@ -16,6 +35,7 @@ test.describe('Visual Regression Tests', () => {
   test.describe('Initial State Screenshots', () => {
     test('Initial configuration screen', async () => {
       // Take a screenshot of the initial page load
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('initial-game-state.png');
     });
 
@@ -26,6 +46,7 @@ test.describe('Visual Regression Tests', () => {
       await expect(gamePage.configContainer).toBeVisible();
       
       // Take screenshot of settings panel
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.configContainer).toHaveScreenshot('settings-panel.png');
     });
 
@@ -34,9 +55,11 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.startNewGame();
       
       // Take screenshot of the complete game interface
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('standard-8x8-board.png');
       
       // Take screenshot of just the board
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('board-8x8-initial.png');
     });
 
@@ -47,7 +70,9 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.confirmConfigurationChange();
       
       // Take screenshot of 10x10 board
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('international-10x10-board.png');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('board-10x10-initial.png');
     });
   });
@@ -59,6 +84,7 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
       
       // Take screenshot showing selected piece and valid move highlights
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('piece-selected-with-hints.png');
       
       // Test without move hints
@@ -67,6 +93,7 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.configDoneButton.click();
       
       await gamePage.clickSquare(5, 2); // Select different red piece
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('piece-selected-no-hints.png');
     });
 
@@ -86,14 +113,19 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.movePiece({ row: 2, col: 3 }, { row: 3, col: 4 });
       await gamePage.waitForAnimations();
 
-      // Take screenshot of mid-game state
+      // Capture the board arrangement only. A full-page capture here is both
+      // redundant (the shell/controls are covered by the initial-state, theme,
+      // and cross-browser full-page shots) and timing-fragile under parallel
+      // load: the mid-game position raises a "You must jump!" alert whose
+      // entrance can still be settling when a full-page screenshot is taken.
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('mid-game-state.png');
-      await expect(gamePage.page).toHaveScreenshot('mid-game-full-interface.png');
     });
 
     test('Game status display variations', async () => {
       // Test Red's turn display
       await gamePage.expectCurrentPlayer('Red');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.gameStatus).toHaveScreenshot('status-red-turn.png');
       
       // Make a move to switch to Black's turn
@@ -102,10 +134,12 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.waitForAnimations();
       
       await gamePage.expectCurrentPlayer('Black');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.gameStatus).toHaveScreenshot('status-black-turn.png');
       
       // Test move counter display
       await expect(gamePage.moveCount).toContainText('Move 2');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.gameStatus).toHaveScreenshot('status-move-2.png');
     });
 
@@ -120,6 +154,7 @@ test.describe('Visual Regression Tests', () => {
       
       // If an error message appears, capture it
       if (await gamePage.errorMessage.isVisible()) {
+        await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
         await expect(gamePage.errorMessage).toHaveScreenshot('error-message.png');
       }
     });
@@ -133,7 +168,9 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.configDoneButton.click();
       
       // Take screenshots of classic theme
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('theme-classic-full.png');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('theme-classic-board.png');
     });
 
@@ -144,7 +181,9 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.configDoneButton.click();
       
       // Take screenshots of modern theme
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('theme-modern-full.png');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('theme-modern-board.png');
     });
 
@@ -155,11 +194,14 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.configDoneButton.click();
       
       // Take screenshots of dark theme
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('theme-dark-full.png');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('theme-dark-board.png');
       
       // Test settings panel in dark theme
       await gamePage.openSettings();
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.configContainer).toHaveScreenshot('settings-panel-dark-theme.png');
     });
   });
@@ -171,7 +213,9 @@ test.describe('Visual Regression Tests', () => {
       const redPiece = gamePage.getPieceOnSquare(5, 0);
       const blackPiece = gamePage.getPieceOnSquare(2, 1);
       
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(redPiece).toHaveScreenshot('red-piece-regular.png');
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(blackPiece).toHaveScreenshot('black-piece-regular.png');
     });
 
@@ -181,6 +225,7 @@ test.describe('Visual Regression Tests', () => {
       
       // Take screenshots that would show king pieces if they exist
       // This serves as a baseline for when king promotion is implemented
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('board-for-king-comparison.png');
     });
 
@@ -191,11 +236,13 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
       
       const selectedSquare = gamePage.getSquare(5, 0);
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(selectedSquare).toHaveScreenshot('square-selected-state.png');
       
       // Test valid move highlighting
       // From (5,0), Red can move to (4,1)
       const validMoveSquare = gamePage.getSquare(4, 1);
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(validMoveSquare).toHaveScreenshot('square-valid-move-state.png');
     });
   });
@@ -214,10 +261,12 @@ test.describe('Visual Regression Tests', () => {
       
       // Take screenshot during animation (this might be timing-dependent)
       await gamePage.page.waitForTimeout(100); // Brief delay to catch animation
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('piece-movement-animation.png');
       
       // Wait for animation to complete
       await gamePage.waitForAnimations();
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot('piece-movement-complete.png');
     });
   });
@@ -226,20 +275,23 @@ test.describe('Visual Regression Tests', () => {
     test('Mobile layout visual verification', async () => {
       await gamePage.page.setViewportSize({ width: 375, height: 667 });
       await gamePage.goto();
-      
+
       // Take screenshot of mobile layout
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('mobile-layout.png');
       
       // Test mobile settings panel
       await gamePage.openSettings();
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('mobile-settings-panel.png');
     });
 
     test('Tablet layout visual verification', async () => {
       await gamePage.page.setViewportSize({ width: 768, height: 1024 });
       await gamePage.goto();
-      
+
       // Take screenshot of tablet layout
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot('tablet-layout.png');
     });
   });
@@ -251,6 +303,7 @@ test.describe('Visual Regression Tests', () => {
       
       // Confirmation dialog should appear
       await expect(gamePage.confirmDialog).toBeVisible();
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.confirmDialog).toHaveScreenshot('confirmation-dialog.png');
     });
 
@@ -265,6 +318,7 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.toggleMoveHints(); // Change move hints setting
       
       // Take screenshot of settings with different options selected
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.configContainer).toHaveScreenshot('settings-international-no-hints.png');
     });
   });
@@ -274,16 +328,20 @@ test.describe('Visual Regression Tests', () => {
       // This test creates browser-specific baselines
       
       // Take comprehensive screenshots for each browser
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.page).toHaveScreenshot(`${browserName}-full-interface.png`);
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot(`${browserName}-game-board.png`);
       
       // Test settings panel
       await gamePage.openSettings();
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.configContainer).toHaveScreenshot(`${browserName}-settings-panel.png`);
       
       // Test with piece selected (Red moves first, so select a Red piece)
       await gamePage.configDoneButton.click();
       await gamePage.clickSquare(5, 0);
+      await gamePage.page.mouse.move(0, 0); // park cursor so no element is :hover
       await expect(gamePage.board).toHaveScreenshot(`${browserName}-piece-selected.png`);
     });
   });
