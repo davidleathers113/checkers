@@ -10,6 +10,7 @@ export * from './core';
 export * from './pieces';
 export * from './rules';
 export * from './strategies';
+export * from './ai';
 export * from './ui';
 export * from './commands';
 export * from './types';
