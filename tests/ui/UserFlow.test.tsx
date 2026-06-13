@@ -23,7 +23,7 @@ describe('User Flow Integration Tests', () => {
 
     // Wait for initial render
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
       expect(screen.getByText(/Current Turn: Red/)).toBeInTheDocument();
     });
 
@@ -63,7 +63,7 @@ describe('User Flow Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Make a move first
@@ -95,7 +95,7 @@ describe('User Flow Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Make a move
@@ -115,9 +115,7 @@ describe('User Flow Integration Tests', () => {
       expect(screen.getByText(/Current Turn: Red/)).toBeInTheDocument();
       expect(screen.getByText('Move 1')).toBeInTheDocument();
       // Check that pieces are in starting positions
-      const pieces = screen.getAllByRole('generic').filter(el => 
-        el.className.includes('game-piece')
-      );
+      const pieces = Array.from(document.querySelectorAll('.game-piece'));
       expect(pieces).toHaveLength(24); // 12 red + 12 black pieces
     });
   });
@@ -126,7 +124,7 @@ describe('User Flow Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Click settings button
@@ -178,7 +176,7 @@ describe('User Flow Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     const squares = screen.getAllByRole('generic').filter(el => 
@@ -204,7 +202,7 @@ describe('User Flow Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // In a real test, we would play through a complete game

@@ -177,9 +177,10 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   useEffect(() => {
     if (lastMoveRef.current) {
       const move = lastMoveRef.current;
-      const key = move.from.hash();
-      
-      // Add moving piece
+      // Key by the destination: that is where the moved piece now lives, so the
+      // glide animation (origin → destination) is applied to the right square.
+      const key = move.to.hash();
+
       setAnimationState(prev => ({
         ...prev,
         movingPieces: new Map([[key, { from: move.from, to: move.to }]])
