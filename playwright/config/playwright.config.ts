@@ -41,6 +41,17 @@ export default defineConfig({
     actionTimeout: 10_000,
   },
 
+  // Screenshot comparison: freeze CSS animations/transitions to their end state
+  // and hide the caret so baselines are deterministic, with a small pixel-ratio
+  // tolerance to absorb sub-pixel anti-aliasing differences across machines.
+  expect: {
+    toHaveScreenshot: {
+      animations: 'disabled',
+      caret: 'hide',
+      maxDiffPixelRatio: 0.01,
+    },
+  },
+
   // Build the app and serve the static preview on a fixed port. Never reuse a
   // server, so every run exercises a freshly built artifact.
   webServer: {
