@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Checkers">
+  <rect width="512" height="512" rx="96" fill="#1f2937"/>
+  <!-- 4x4 checkerboard inset -->
+  <g transform="translate(64 64)">
+    <rect width="384" height="384" rx="24" fill="#f0d9b5"/>
+    <g fill="#b58863">
+      <rect x="0"   y="0"   width="96" height="96"/>
+      <rect x="192" y="0"   width="96" height="96"/>
+      <rect x="96"  y="96"  width="96" height="96"/>
+      <rect x="288" y="96"  width="96" height="96"/>
+      <rect x="0"   y="192" width="96" height="96"/>
+      <rect x="192" y="192" width="96" height="96"/>
+      <rect x="96"  y="288" width="96" height="96"/>
+      <rect x="288" y="288" width="96" height="96"/>
+    </g>
+  </g>
+  <!-- a red crowned piece -->
+  <circle cx="256" cy="264" r="120" fill="#b91c1c"/>
+  <circle cx="256" cy="264" r="120" fill="none" stroke="#7f1d1d" stroke-width="14"/>
+  <circle cx="256" cy="264" r="78" fill="none" stroke="#ef4444" stroke-width="10"/>
+  <path d="M196 252 l24 40 h72 l24 -40 -34 24 -26 -36 -26 36 z" fill="#fbbf24"/>
+</svg>
