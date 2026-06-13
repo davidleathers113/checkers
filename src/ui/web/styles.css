@@ -628,6 +628,7 @@ body::before {
 .btn {
   font-family: var(--font-body);
   padding: 12px 22px;
+  min-height: 48px;
   border: none;
   border-radius: 13px;
   cursor: pointer;
@@ -694,9 +695,9 @@ body::before {
 .help-btn,
 .sound-btn {
   position: absolute;
-  top: 20px;
-  width: 44px;
-  height: 44px;
+  top: 18px;
+  width: 46px;
+  height: 46px;
   border-radius: 13px;
   background: linear-gradient(180deg, #fff, var(--surface-2));
   border: 1px solid var(--surface-line);

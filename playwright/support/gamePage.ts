@@ -6,6 +6,11 @@ export class GamePage {
   // Main game container
   readonly gameContainer: Locator;
   readonly settingsButton: Locator;
+  readonly helpButton: Locator;
+  readonly soundButton: Locator;
+  readonly hintButton: Locator;
+  readonly helpPanel: Locator;
+  readonly captureAlert: Locator;
   readonly errorMessage: Locator;
 
   // Game configuration
@@ -39,6 +44,11 @@ export class GamePage {
     // Main elements
     this.gameContainer = page.locator('.game-container');
     this.settingsButton = page.locator('[data-testid="settings-button"]');
+    this.helpButton = page.locator('[data-testid="help-button"]');
+    this.soundButton = page.locator('[data-testid="sound-button"]');
+    this.hintButton = page.locator('[data-testid="hint-button"]');
+    this.helpPanel = page.locator('[data-testid="help-panel"]');
+    this.captureAlert = page.locator('[data-testid="capture-alert"]');
     this.errorMessage = page.locator('[data-testid="error-message"]');
 
     // Configuration
@@ -143,18 +153,15 @@ export class GamePage {
     await this.getSquare(row, col).click();
   }
 
+  /** Move by tapping the source then the destination (deterministic). */
   async movePiece(from: {row: number, col: number}, to: {row: number, col: number}): Promise<void> {
-    const fromSquare = this.getSquare(from.row, from.col);
-    const toSquare = this.getSquare(to.row, to.col);
-    
-    // Try drag and drop first
-    try {
-      await fromSquare.dragTo(toSquare);
-    } catch {
-      // Fallback to click-based movement
-      await fromSquare.click();
-      await toSquare.click();
-    }
+    await this.clickSquare(from.row, from.col);
+    await this.clickSquare(to.row, to.col);
+  }
+
+  /** Move by dragging the source square onto the destination square. */
+  async dragPiece(from: {row: number, col: number}, to: {row: number, col: number}): Promise<void> {
+    await this.getSquare(from.row, from.col).dragTo(this.getSquare(to.row, to.col));
   }
 
   // --- Assertions ---
@@ -176,7 +183,7 @@ export class GamePage {
   async expectGameOver(winner?: 'Red' | 'Black'): Promise<void> {
     await expect(this.gameOverMessage).toBeVisible();
     if (winner) {
-      await expect(this.gameOverMessage).toContainText(`${winner} Wins!`);
+      await expect(this.gameOverMessage).toContainText(`${winner} wins!`);
     }
   }
 
