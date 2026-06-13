@@ -110,37 +110,31 @@ export class MyCustomRules extends CustomRulesBase {
 
 ## Testing Your Rules
 
-Use the console UI to test your custom rules:
+Drive your custom rules programmatically against the `Game` controller:
 
 ```typescript
-import { ConsoleUI } from '../src/ui/ConsoleUI';
+import { Game } from '../src/core/Game';
 
-async function testCustomRules() {
-  const ui = new ConsoleUI();
-  const game = new Game({
-    ruleEngine: new MyCustomRules()
-  });
-  
-  game.addObserver(ui);
-  await ui.initialize();
-  
-  // Game loop
+function playCustomRules() {
+  const game = new Game({ ruleEngine: new MyCustomRules() });
+
   while (!game.isGameOver()) {
-    ui.render(game.getBoard());
-    const move = await ui.getMove();
-    try {
-      game.makeMove(move);
-    } catch (error) {
-      ui.showError(error.message);
-    }
+    const moves = game.getAllPossibleMoves();
+    if (moves.length === 0) break;
+    game.makeMove(moves[0]!); // pick a move (here: the first legal one)
   }
+
+  return game.getWinner();
 }
 ```
+
+To exercise rules interactively, wire your engine into the React web app via the
+`useConfigurableGame` hook (`src/ui/web/`) and run `npm run dev`.
 
 ## Best Practices
 
 1. **Start Simple**: Begin with `CustomRulesBase` and override one method at a time
-2. **Test Thoroughly**: Use the console UI to verify your rule changes work correctly
+2. **Test Thoroughly**: Add unit tests (see `tests/`) and exercise rules through the web app to verify changes
 3. **Document Changes**: Clearly document what your rules modify
 4. **Handle Edge Cases**: Consider unusual board positions and game states
 5. **Maintain Immutability**: Always return new objects, never modify existing ones
@@ -197,4 +191,4 @@ When creating new example rules:
 2. Include comprehensive documentation
 3. Add usage examples in this README
 4. Consider adding unit tests in the `tests/` directory
-5. Test with both console and programmatic interfaces
+5. Test both programmatically and through the web app

@@ -9,8 +9,8 @@ A highly extensible checkers game implementation in TypeScript, designed with cl
 - **Design Patterns**: Strategy, Observer, Factory, and Command patterns
 - **Immutable State**: All game state changes create new instances
 - **Type Safety**: Full TypeScript support with strict typing
-- **Pluggable UI**: Support for different UI implementations (Console, Web, etc.)
-- **Comprehensive Testing**: Unit tests with Jest
+- **Web UI**: React-based interface, with a `GameUI` extension point for other presentation layers
+- **Comprehensive Testing**: Unit, integration, and E2E tests (Jest + Playwright)
 
 ## Quick Start
 
@@ -18,10 +18,13 @@ A highly extensible checkers game implementation in TypeScript, designed with cl
 # Install dependencies
 npm install
 
-# Build the project
+# Build the project (Node library build)
 npm run build
 
-# Run the game
+# Build the web app
+npm run build:web
+
+# Run the web app (Vite dev server)
 npm run dev
 
 # Run tests

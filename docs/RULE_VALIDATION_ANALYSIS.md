@@ -1,5 +1,12 @@
 # Rule Validation Analysis
 
+> **Status: RESOLVED.** The redesign proposed below has been implemented. Move
+> validation is now a single path: `StandardRules.validateMove` delegates to the
+> `ValidationEngine`, and multi-jump sequences are validated step-by-step by
+> `MultiStepMoveValidator` (`src/strategies/MultiStepMoveValidator.ts`), which
+> simulates each step on a temporary board. The earlier inline duplication in
+> `StandardRules` was removed. This document is retained as background.
+
 This document summarizes findings from a forensic analysis of the move validation
 logic in the checkers game. It outlines the root cause of illegal move detection,
 models the faulty logic, proposes an updated design, and references modern rule
