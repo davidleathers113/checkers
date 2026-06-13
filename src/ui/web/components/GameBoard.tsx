@@ -10,6 +10,8 @@ interface AnimationState {
   promotedPieces: Set<string>;
 }
 
+type MoveTargetType = 'slide' | 'capture' | 'hop';
+
 interface GameBoardProps {
   board: Board;
   selectedPosition: Position | null;
@@ -17,10 +19,22 @@ interface GameBoardProps {
   animationState: AnimationState;
   onSquareClick: (position: Position) => void;
   showMoveHints: boolean;
-  /** Source squares of mandatory capture moves (highlighted when must-capture). */
   mandatorySources?: Set<string>;
-  /** A suggested move to highlight (from the Hint button). */
   hintMove?: Move | null;
+}
+
+/**
+ * Classifies a (non-capture) move so its landing square can show the right
+ * affordance: a "hop" leaps over one of your own pieces (Jump Your Own Man),
+ * whereas a "slide" travels over empty squares.
+ */
+function classifyMove(move: Move, board: Board): MoveTargetType {
+  if (move.isCapture()) return 'capture';
+  if (move.getDistance() >= 2) {
+    const between = move.from.getPositionsBetween(move.to);
+    if (between.some(pos => !board.isEmpty(pos))) return 'hop';
+  }
+  return 'slide';
 }
 
 export function GameBoard({
@@ -34,18 +48,26 @@ export function GameBoard({
   hintMove
 }: GameBoardProps): React.JSX.Element {
   const squares = [];
-  
+
   for (let row = 0; row < board.size; row++) {
     for (let col = 0; col < board.size; col++) {
       const position = new Position(row, col);
       const piece = board.getPiece(position);
       const isSelected = selectedPosition?.equals(position) ?? false;
-      const isValidMove = showMoveHints && validMoves.some(move => move.to.equals(position));
+
+      const matchingMove = validMoves.find(move => move.to.equals(position));
+      const isValidMove = showMoveHints && matchingMove !== undefined;
+      const validMoveType = matchingMove ? classifyMove(matchingMove, board) : undefined;
+
       const posKey = position.hash();
-      
-      const isMoving = animationState.movingPieces.has(posKey);
-      const isCaptured = animationState.capturedPieces.has(posKey);
+      const movingEntry = animationState.movingPieces.get(posKey);
+      const isMoving = movingEntry !== undefined;
+      const moveDelta = movingEntry
+        ? { dx: movingEntry.from.col - movingEntry.to.col, dy: movingEntry.from.row - movingEntry.to.row }
+        : undefined;
+      const isCaptureBurst = animationState.capturedPieces.has(posKey);
       const isPromoted = animationState.promotedPieces.has(posKey);
+
       const isMustMove = showMoveHints && (mandatorySources?.has(posKey) ?? false);
       const isHintFrom = hintMove?.from.equals(position) ?? false;
       const isHintTo = hintMove?.to.equals(position) ?? false;
@@ -57,8 +79,11 @@ export function GameBoard({
           piece={piece}
           isSelected={isSelected}
           isValidMove={isValidMove}
+          validMoveType={validMoveType}
           isMoving={isMoving}
-          isCaptured={isCaptured}
+          moveDelta={moveDelta}
+          isCaptured={false}
+          isCaptureBurst={isCaptureBurst}
           isPromoted={isPromoted}
           isMustMove={isMustMove}
           isHintFrom={isHintFrom}
@@ -71,8 +96,9 @@ export function GameBoard({
 
   const boardStyle = {
     gridTemplateColumns: `repeat(${board.size}, 1fr)`,
-    gridTemplateRows: `repeat(${board.size}, 1fr)`
-  };
+    gridTemplateRows: `repeat(${board.size}, 1fr)`,
+    ['--board-size' as string]: board.size
+  } as React.CSSProperties;
 
   return (
     <div className="game-board" data-testid="game-board" style={boardStyle}>

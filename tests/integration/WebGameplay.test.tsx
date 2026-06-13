@@ -22,7 +22,7 @@ describe('Web Gameplay Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Verify initial game state
@@ -89,7 +89,7 @@ describe('Web Gameplay Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Select a piece first to see default behavior (hints should be on by default)
@@ -153,7 +153,7 @@ describe('Web Gameplay Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     const squares = screen.getAllByRole('generic').filter(el => 
@@ -189,7 +189,7 @@ describe('Web Gameplay Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Count initial squares (should be 8x8 = 64)

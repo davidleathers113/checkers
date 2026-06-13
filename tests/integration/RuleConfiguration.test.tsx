@@ -22,7 +22,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Open settings
@@ -102,7 +102,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Open settings
@@ -138,7 +138,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Open settings and change theme
@@ -173,7 +173,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Open settings and change animation speed
@@ -208,7 +208,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // First ensure we're on Standard checkers (8x8)
@@ -298,7 +298,7 @@ describe('Rule Configuration Integration Tests', () => {
     render(<GameApp />);
 
     await waitFor(() => {
-      expect(screen.getByText('Extensible Checkers')).toBeInTheDocument();
+      expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
     // Open settings and make multiple changes

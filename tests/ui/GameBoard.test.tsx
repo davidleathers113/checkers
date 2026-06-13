@@ -62,9 +62,7 @@ describe('GameBoard Component', () => {
       />
     );
 
-    const pieces = screen.getAllByRole('generic').filter(el => 
-      el.className.includes('game-piece')
-    );
+    const pieces = Array.from(document.querySelectorAll('.game-piece'));
     expect(pieces).toHaveLength(1);
     expect(pieces[0]).toHaveClass('red');
   });
@@ -160,9 +158,7 @@ describe('GameBoard Component', () => {
       />
     );
 
-    const pieces = screen.getAllByRole('generic').filter(el => 
-      el.className.includes('game-piece')
-    );
+    const pieces = Array.from(document.querySelectorAll('.game-piece'));
     expect(pieces[0]).toHaveClass('moving');
   });
 

@@ -6,7 +6,7 @@ import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
 import { GameConfig } from './components/GameConfig';
 import { HelpPanel } from './components/HelpPanel';
-import { THEME_COLORS, RuleSet, BoardSize } from './types/GameConfig';
+import { THEME_COLORS, ANIMATION_DURATIONS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
   const { config } = useGameConfig();
@@ -36,7 +36,8 @@ function GameAppContent(): React.JSX.Element {
     root.style.setProperty('--black-piece-start', themeColors.blackPiece.start);
     root.style.setProperty('--black-piece-mid', themeColors.blackPiece.mid);
     root.style.setProperty('--black-piece-end', themeColors.blackPiece.end);
-  }, [config.theme]);
+    root.style.setProperty('--glide-dur', `${ANIMATION_DURATIONS[config.animationSpeed]}ms`);
+  }, [config.theme, config.animationSpeed]);
 
   return (
     <div className={appClass}>
@@ -59,7 +60,7 @@ function GameAppContent(): React.JSX.Element {
           ❓
         </button>
 
-        <h1>Extensible Checkers</h1>
+        <h1>Checkers</h1>
         
         <GameStatus
           currentPlayer={gameState.currentPlayer}
