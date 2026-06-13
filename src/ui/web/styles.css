@@ -619,9 +619,10 @@ body::before {
   animation: chipIn 0.3s var(--ease-spring);
 }
 
-/* Round icon buttons (settings / help) */
+/* Round icon buttons (settings / help / sound) */
 .settings-btn,
-.help-btn {
+.help-btn,
+.sound-btn {
   position: absolute;
   top: 22px;
   width: 42px;
@@ -640,8 +641,10 @@ body::before {
 }
 .settings-btn { right: 22px; }
 .help-btn { right: 72px; }
+.sound-btn { right: 122px; }
 .settings-btn:hover,
-.help-btn:hover { transform: translateY(-2px) rotate(-4deg); box-shadow: 0 8px 16px -8px rgba(40, 22, 8, 0.55); }
+.help-btn:hover,
+.sound-btn:hover { transform: translateY(-2px) rotate(-4deg); box-shadow: 0 8px 16px -8px rgba(40, 22, 8, 0.55); }
 
 /* ── Overlays: settings & help ──────────────────────────────────────────── */
 

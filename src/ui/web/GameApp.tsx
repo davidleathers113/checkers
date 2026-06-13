@@ -9,7 +9,7 @@ import { HelpPanel } from './components/HelpPanel';
 import { THEME_COLORS, ANIMATION_DURATIONS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
-  const { config } = useGameConfig();
+  const { config, updateConfig } = useGameConfig();
   const { gameState, actions, canUndo, canRedo, isThinking, mustCapture, mandatorySources, hintMove } =
     useConfigurableGame();
   const [showConfig, setShowConfig] = useState(false);
@@ -58,6 +58,16 @@ function GameAppContent(): React.JSX.Element {
           aria-label="How to Play"
         >
           ❓
+        </button>
+
+        <button
+          className="sound-btn"
+          data-testid="sound-button"
+          onClick={() => updateConfig({ sound: !config.sound })}
+          aria-label={config.sound ? 'Mute sound' : 'Unmute sound'}
+          aria-pressed={config.sound}
+        >
+          {config.sound ? '🔊' : '🔇'}
         </button>
 
         <h1>Checkers</h1>

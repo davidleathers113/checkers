@@ -10,6 +10,7 @@ import { RuleEngine } from '../../../rules/RuleEngine';
 import { MinimaxAI } from '../../../ai/MinimaxAI';
 import { useGameConfig } from '../contexts/GameConfigContext';
 import { ANIMATION_DURATIONS, RuleSet, BoardSize, AiSide } from '../types/GameConfig';
+import { setSoundMuted, playMove, playCapture, playPromote, playWin, vibrate } from '../sound';
 
 /** How long the computer "thinks" before moving, so its move is visible. */
 const AI_THINK_DELAY_MS = 450;
@@ -102,9 +103,14 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   // A suggested move highlighted by the Hint button (cleared on any change).
   const [hintMove, setHintMove] = useState<Move | null>(null);
 
+  // Keep the sound engine's mute flag in sync with the setting.
+  useEffect(() => {
+    setSoundMuted(!config.sound);
+  }, [config.sound]);
+
   // Update game instance when config changes
   useEffect(() => {
-    gameRef.current = new Game({ 
+    gameRef.current = new Game({
       ruleEngine: createRuleEngine(config.ruleSet, config.boardSize)
     });
     setSelectedPosition(null);
@@ -132,10 +138,19 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     const observer: Partial<GameObserver> = {
       onMove: (move: Move) => {
         lastMoveRef.current = move;
+        if (move.captures.length > 0) {
+          playCapture();
+          vibrate([12, 18, 12]);
+        } else {
+          playMove();
+          vibrate(10);
+        }
         cachedStateRef.current = null; // Clear cache
         callback();
       },
       onGameEnd: () => {
+        playWin();
+        vibrate([40, 30, 40, 30, 80]);
         cachedStateRef.current = null; // Clear cache
         callback();
       },
@@ -153,6 +168,8 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       },
       onPiecePromoted: (position: Position) => {
         lastPromotedRef.current = position;
+        playPromote();
+        vibrate([10, 40, 10]);
         cachedStateRef.current = null; // Clear cache
         callback();
       }

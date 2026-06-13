@@ -16,6 +16,8 @@ export interface GameConfig {
   aiSide: AiSide;
   /** Computer difficulty when mode is 'ai'. */
   difficulty: Difficulty;
+  /** Sound effects + haptics on/off. */
+  sound: boolean;
 }
 
 export const defaultConfig: GameConfig = {
@@ -26,7 +28,8 @@ export const defaultConfig: GameConfig = {
   showMoveHints: true,
   mode: 'human',
   aiSide: 'black',
-  difficulty: 'easy'
+  difficulty: 'easy',
+  sound: true
 };
 
 export const ANIMATION_DURATIONS = {
