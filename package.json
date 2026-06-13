@@ -18,6 +18,7 @@
     "test:e2e:smoke": "playwright test --config=playwright/config/playwright.config.ts smoke",
     "test:e2e:visual": "playwright test --config=playwright/config/playwright.config.ts visual",
     "test:e2e:accessibility": "playwright test --config=playwright/config/playwright.config.ts accessibility",
+    "test:e2e:ci": "playwright test --config=playwright/config/playwright.config.ts --project=chromium --grep-invert \"Visual Regression\"",
     "test:e2e:report": "playwright show-report",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"

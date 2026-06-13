@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Nightly cross-browser E2E sweep (07:00 UTC).
+    - cron: '0 7 * * *'
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, typecheck, unit tests & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (jsdom)
+        run: npm test
+
+      - name: Build (library)
+        run: npm run build
+
+      - name: Build (web)
+        run: npm run build:web
+
+  e2e:
+    name: E2E (chromium)
+    runs-on: ubuntu-latest
+    # The PR gate runs functional + accessibility specs on chromium only.
+    # Visual-regression baselines are platform-specific (captured on macOS), so
+    # they are excluded here and verified locally — see playwright/README.md.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E (chromium, excluding visual)
+        run: npm run test:e2e:ci
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-all-browsers:
+    name: E2E (full browser matrix)
+    runs-on: ubuntu-latest
+    # Only on the nightly schedule — Chromium, Firefox, WebKit, and the mobile
+    # emulations. Still excludes visual regression (macOS baselines).
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E (all browsers, excluding visual)
+        env:
+          E2E_ALL_BROWSERS: '1'
+        run: npx playwright test --config=playwright/config/playwright.config.ts --grep-invert "Visual Regression"
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-all-browsers
+          path: playwright-report/
+          retention-days: 7
