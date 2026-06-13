@@ -2,7 +2,7 @@ import { Piece } from './Piece';
 import { Position } from '../core/Position';
 import { Board } from '../core/Board';
 import { Move } from '../core/Move';
-import { Player, Direction } from '../types';
+import { Player, Direction, MoveStep } from '../types';
 
 /**
  * King piece that can move in all diagonal directions.
@@ -58,22 +58,15 @@ export class KingPiece extends Piece {
   }
 
   /**
-   * Gets possible capture moves for a king.
+   * Gets possible capture moves for a king, including multi-jump sequences.
+   * Each returned move carries explicit per-jump `steps` so that turning
+   * sequences (whose start and end are not on a single diagonal) are
+   * represented and validated correctly.
    */
   getCaptureMoves(position: Position, board: Board): Move[] {
-    const captures: Move[] = [];
-    
-    for (const direction of this.getMoveDirections()) {
-      const capturesInDirection = this.getCapturesInDirection(
-        position,
-        direction,
-        board,
-        []
-      );
-      captures.push(...capturesInDirection);
-    }
-    
-    return captures;
+    const sequences: Move[] = [];
+    this.collectCaptures(position, position, board, [], [], sequences);
+    return sequences;
   }
 
   /**
@@ -145,73 +138,69 @@ export class KingPiece extends Piece {
   }
 
   /**
-   * Finds all capture moves in a given direction.
+   * Recursively builds flying-king capture sequences. The board is never
+   * mutated: pieces captured earlier in the sequence remain on the board and
+   * therefore act as blockers (you may not jump the same piece twice, and a
+   * captured piece blocks the king's path until the turn ends).
+   *
+   * @param start    The king's original square (the move's `from`).
+   * @param current  The square the king is jumping from at this step.
+   * @param captured Pieces captured so far in this sequence.
+   * @param steps    The jump steps taken so far.
+   * @param out      Accumulator for every valid (partial or full) sequence.
    */
-  private getCapturesInDirection(
-    from: Position,
-    direction: Direction,
+  private collectCaptures(
+    start: Position,
+    current: Position,
     board: Board,
-    alreadyCaptured: Position[]
-  ): Move[] {
-    const captures: Move[] = [];
-    const positions = this.getPositionsInDirection(from, direction, board.size - 1, board.size);
-    
-    let foundOpponent = false;
-    let opponentPos: Position | null = null;
-    
-    for (const pos of positions) {
-      if (!board.isValidPosition(pos)) break;
-      
-      const piece = board.getPiece(pos);
-      
-      // Hit our own piece - can't continue
-      if (piece && piece.belongsTo(this.player)) break;
-      
-      // Found an opponent
-      if (piece && !foundOpponent && !this.isAlreadyCaptured(pos, alreadyCaptured)) {
-        foundOpponent = true;
-        opponentPos = pos;
-        continue;
-      }
-      
-      // Found a second piece - can't jump over two pieces
-      if (piece && foundOpponent) break;
-      
-      // Found empty square after opponent - valid landing position
-      if (!piece && foundOpponent && opponentPos) {
-        const newCapture = new Move(from, pos, [opponentPos]);
-        captures.push(newCapture);
-        
-        // Check for additional captures from this position
-        const newAlreadyCaptured = [...alreadyCaptured, opponentPos];
-        for (const nextDirection of this.getMoveDirections()) {
-          const additionalCaptures = this.getCapturesInDirection(
-            pos,
-            nextDirection,
-            board,
-            newAlreadyCaptured
-          );
-          
-          // Combine captures into multi-capture moves
-          for (const additional of additionalCaptures) {
-            captures.push(new Move(
-              from,
-              additional.to,
-              [...newCapture.captures, ...additional.captures],
-              false
-            ));
-          }
-        }
+    captured: Position[],
+    steps: MoveStep[],
+    out: Move[]
+  ): void {
+    for (const direction of this.getMoveDirections()) {
+      const jump = this.findJumpInDirection(current, direction, board, captured);
+      if (!jump) continue;
+
+      for (const landing of jump.landings) {
+        const step: MoveStep = { from: current, to: landing, captured: jump.opponent };
+        const nextSteps = [...steps, step];
+        const nextCaptured = [...captured, jump.opponent];
+
+        out.push(new Move(start, landing, nextCaptured, false, nextSteps));
+        this.collectCaptures(start, landing, board, nextCaptured, nextSteps, out);
       }
     }
-    
-    return captures;
   }
 
   /**
-   * Checks if a position is already captured in the current sequence.
+   * Looks along one diagonal for the first jumpable opponent and the empty
+   * landing squares beyond it. Returns null if no capture is possible that way.
    */
-  private isAlreadyCaptured(position: Position, captured: Position[]): boolean {
-    return captured.some(pos => pos.equals(position));
+  private findJumpInDirection(
+    from: Position,
+    direction: Direction,
+    board: Board,
+    captured: Position[]
+  ): { opponent: Position; landings: Position[] } | null {
+    // Glide over empty squares to the first occupied one.
+    let scan = this.getNextPosition(from, direction, board.size);
+    while (scan && board.isEmpty(scan)) {
+      scan = this.getNextPosition(scan, direction, board.size);
+    }
+    if (!scan) return null;
+
+    const blocker = board.getPiece(scan);
+    // Can only jump a fresh opponent piece.
+    if (!blocker || blocker.belongsTo(this.player)) return null;
+    if (captured.some(c => c.equals(scan))) return null;
+
+    const opponent = scan;
+    const landings: Position[] = [];
+    let landing = this.getNextPosition(opponent, direction, board.size);
+    while (landing && board.isEmpty(landing)) {
+      landings.push(landing);
+      landing = this.getNextPosition(landing, direction, board.size);
+    }
+    return landings.length > 0 ? { opponent, landings } : null;
   }
 }
