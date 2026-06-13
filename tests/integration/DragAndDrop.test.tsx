@@ -51,4 +51,33 @@ describe('drag and drop', () => {
     expect(document.querySelector('[data-testid="game-square-5-0"] .game-piece.red')).not.toBeNull();
     expect(screen.getByText('Move 1')).toBeInTheDocument();
   });
+
+  it('ignores attempts to drag the opponent\'s piece', () => {
+    render(<GameApp />);
+    const black = screen.getByTestId('game-square-2-1'); // black piece, not Red's turn
+    mockDropPoint(screen.getByTestId('game-square-3-2'));
+
+    fireEvent.pointerDown(black, { clientX: 10, clientY: 10, button: 0, pointerType: 'mouse' });
+    emitWindow('pointermove', 60, 60);
+    emitWindow('pointerup', 60, 60);
+
+    // Nothing happened: still Red to move, black piece untouched.
+    expect(screen.getByText('Move 1')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="game-square-2-1"] .game-piece.black')).not.toBeNull();
+  });
+
+  it('can be undone after a drag move', () => {
+    render(<GameApp />);
+    const source = screen.getByTestId('game-square-5-0');
+    mockDropPoint(screen.getByTestId('game-square-4-1'));
+
+    fireEvent.pointerDown(source, { clientX: 10, clientY: 10, button: 0, pointerType: 'mouse' });
+    emitWindow('pointermove', 60, 60);
+    emitWindow('pointerup', 120, 120);
+    expect(screen.getByText('Move 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('undo-button'));
+    expect(screen.getByText('Move 1')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="game-square-5-0"] .game-piece.red')).not.toBeNull();
+  });
 });
