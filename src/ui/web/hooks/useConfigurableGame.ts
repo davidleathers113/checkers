@@ -255,7 +255,11 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   }, []);
   
   const redoMove = useCallback((): void => {
-    // Note: redoMove not yet implemented in Game class
+    if (gameRef.current.redoMove()) {
+      setSelectedPosition(null);
+      setValidMoves([]);
+      setErrorMessage(null);
+    }
   }, []);
 
   // Combine game state with UI state
@@ -271,6 +275,6 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     gameState: combinedGameState,
     actions: { selectPosition, undoMove, redoMove, newGame },
     canUndo: gameState.moveHistory.length > 0,
-    canRedo: false,
+    canRedo: gameRef.current.canRedo(),
   };
 }
