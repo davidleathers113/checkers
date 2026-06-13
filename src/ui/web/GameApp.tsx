@@ -9,7 +9,7 @@ import { THEME_COLORS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
   const { config } = useGameConfig();
-  const { gameState, actions, canUndo, canRedo } = useConfigurableGame();
+  const { gameState, actions, canUndo, canRedo, isThinking } = useConfigurableGame();
   const [showConfig, setShowConfig] = useState(false);
 
   const handleNewGame = (boardSize?: BoardSize, ruleSet?: RuleSet): void => {
@@ -49,12 +49,18 @@ function GameAppContent(): React.JSX.Element {
 
         <h1>Extensible Checkers</h1>
         
-        <GameStatus 
+        <GameStatus
           currentPlayer={gameState.currentPlayer}
           gameOver={gameState.isGameOver}
           winner={gameState.winner}
           moveCount={gameState.moveHistory.length}
         />
+
+        {isThinking && (
+          <div className="thinking-indicator" data-testid="thinking-indicator" role="status">
+            🤔 Computer is thinking…
+          </div>
+        )}
         
         <GameBoard
           board={gameState.board}

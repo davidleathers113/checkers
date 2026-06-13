@@ -106,6 +106,65 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
         </div>
 
         <div className="config-section">
+          <h3>Opponent</h3>
+          <div className="config-options horizontal">
+            <label className={`config-option ${config.mode === 'human' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="human"
+                data-testid="mode-human"
+                checked={config.mode === 'human'}
+                onChange={() => updateConfig({ mode: 'human' })}
+              />
+              <span>Two Players</span>
+            </label>
+            <label className={`config-option ${config.mode === 'ai' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="ai"
+                data-testid="mode-ai"
+                checked={config.mode === 'ai'}
+                onChange={() => updateConfig({ mode: 'ai' })}
+              />
+              <span>vs Computer</span>
+            </label>
+          </div>
+
+          {config.mode === 'ai' && (
+            <div className="config-subsection" data-testid="ai-options">
+              <div className="config-options horizontal">
+                {(['easy', 'medium', 'hard'] as const).map(level => (
+                  <label
+                    key={level}
+                    className={`config-option ${config.difficulty === level ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="difficulty"
+                      value={level}
+                      checked={config.difficulty === level}
+                      onChange={() => updateConfig({ difficulty: level })}
+                    />
+                    <span>{level.charAt(0).toUpperCase() + level.slice(1)}</span>
+                  </label>
+                ))}
+              </div>
+              <label className="config-checkbox">
+                <input
+                  type="checkbox"
+                  data-testid="ai-moves-first-checkbox"
+                  checked={config.aiSide === 'red'}
+                  onChange={(e) => updateConfig({ aiSide: e.target.checked ? 'red' : 'black' })}
+                />
+                <span>Computer moves first</span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="config-section">
           <h3>Board Size</h3>
           <div className="config-options horizontal">
             <label className={`config-option ${config.boardSize === 8 ? 'selected' : ''}`}>

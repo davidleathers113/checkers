@@ -2,13 +2,21 @@ import { useSyncExternalStore, useCallback, useRef, useState, useEffect } from '
 import { Game } from '../../../core/Game';
 import { Move } from '../../../core/Move';
 import { Position } from '../../../core/Position';
-import { GameState as CoreGameState } from '../../../types';
+import { GameState as CoreGameState, Player } from '../../../types';
 import { StandardRules } from '../../../rules/StandardRules';
 import { JumpOwnRules } from '../../../rules/JumpOwnRules';
 import { GameObserver } from '../../../core/GameObserver';
 import { RuleEngine } from '../../../rules/RuleEngine';
+import { MinimaxAI } from '../../../ai/MinimaxAI';
 import { useGameConfig } from '../contexts/GameConfigContext';
-import { ANIMATION_DURATIONS, RuleSet, BoardSize } from '../types/GameConfig';
+import { ANIMATION_DURATIONS, RuleSet, BoardSize, AiSide } from '../types/GameConfig';
+
+/** How long the computer "thinks" before moving, so its move is visible. */
+const AI_THINK_DELAY_MS = 450;
+
+function aiPlayerFor(side: AiSide): Player {
+  return side === 'red' ? Player.RED : Player.BLACK;
+}
 
 // Import custom rule implementations - use relative paths from web directory
 import { InternationalDraughtsRules } from '../../../../examples/InternationalDraughts';
@@ -40,6 +48,8 @@ interface UseConfigurableGameReturn {
   actions: GameActions;
   canUndo: boolean;
   canRedo: boolean;
+  /** True while the computer is choosing its move. */
+  isThinking: boolean;
 }
 
 function createRuleEngine(ruleSet: RuleSet, boardSize: BoardSize = 8): RuleEngine {
@@ -71,6 +81,15 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   
   // Cache the game state to avoid infinite loops
   const cachedStateRef = useRef<CoreGameState | null>(null);
+
+  // Whether the computer is currently choosing a move (mirrored in a ref so
+  // event handlers can read it without being re-created).
+  const [isThinking, setIsThinking] = useState(false);
+  const isThinkingRef = useRef(false);
+  const setThinking = useCallback((value: boolean): void => {
+    isThinkingRef.current = value;
+    setIsThinking(value);
+  }, []);
 
   // Update game instance when config changes
   useEffect(() => {
@@ -197,9 +216,59 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     }
   }, [gameState.board, animationDuration]);
 
+  // Drive the computer's turn when playing against the AI.
+  useEffect(() => {
+    if (config.mode !== 'ai' || gameState.isGameOver) {
+      return;
+    }
+    const aiPlayer = aiPlayerFor(config.aiSide);
+    if (gameState.currentPlayer !== aiPlayer) {
+      return;
+    }
+
+    let cancelled = false;
+    setThinking(true);
+
+    const timer = setTimeout(() => {
+      const game = gameRef.current;
+      if (cancelled || game.isGameOver() || game.getCurrentPlayer() !== aiPlayer) {
+        setThinking(false);
+        return;
+      }
+      const ai = new MinimaxAI({ difficulty: config.difficulty });
+      const move = ai.chooseMove(game.getBoard(), game.getCurrentPlayer(), game.getRuleEngine());
+      if (!cancelled && move) {
+        try {
+          game.makeMove(move);
+        } catch {
+          /* If the chosen move is somehow rejected, just yield the turn. */
+        }
+      }
+      setThinking(false);
+    }, AI_THINK_DELAY_MS);
+
+    return (): void => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    gameState.currentPlayer,
+    gameState.isGameOver,
+    gameState.moveHistory.length,
+    config.mode,
+    config.aiSide,
+    config.difficulty,
+    gameVersion,
+    setThinking,
+  ]);
+
   const selectPosition = useCallback((position: Position): void => {
     const game = gameRef.current;
     if (game.isGameOver()) return;
+
+    // Ignore clicks while the computer is thinking or it is the computer's turn.
+    if (isThinkingRef.current) return;
+    if (config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide)) return;
 
     const piece = game.getBoard().getPiece(position);
 
@@ -225,7 +294,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
         setErrorMessage(null);
       }
     }
-  }, [selectedPosition, validMoves]);
+  }, [selectedPosition, validMoves, config.mode, config.aiSide]);
 
   const newGame = useCallback((boardSize?: BoardSize, ruleSet?: RuleSet): void => {
     const rules = ruleSet || config.ruleSet;
@@ -250,12 +319,18 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   }, [config.ruleSet, config.boardSize]);
   
   const undoMove = useCallback((): void => {
-    if (gameRef.current.undoMove()) {
+    const game = gameRef.current;
+    if (game.undoMove()) {
+      // Against the computer, undo back to the human's turn so the AI does not
+      // immediately replay the move that was just undone.
+      if (config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide) && game.canUndo()) {
+        game.undoMove();
+      }
       setSelectedPosition(null);
       setValidMoves([]);
       setErrorMessage(null);
     }
-  }, []);
+  }, [config.mode, config.aiSide]);
   
   const redoMove = useCallback((): void => {
     if (gameRef.current.redoMove()) {
@@ -279,5 +354,6 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     actions: { selectPosition, undoMove, redoMove, newGame },
     canUndo: gameState.moveHistory.length > 0,
     canRedo: gameRef.current.canRedo(),
+    isThinking,
   };
 }
