@@ -41,6 +41,8 @@ interface GameActions {
   undoMove: () => void;
   redoMove: () => void;
   newGame: (boardSize?: BoardSize, ruleSet?: RuleSet) => void;
+  /** Suggest a strong move for the human to consider (teaching aid). */
+  showHint: () => void;
 }
 
 interface UseConfigurableGameReturn {
@@ -50,6 +52,12 @@ interface UseConfigurableGameReturn {
   canRedo: boolean;
   /** True while the computer is choosing its move. */
   isThinking: boolean;
+  /** True when the current player has a mandatory capture. */
+  mustCapture: boolean;
+  /** Source-square hashes of the mandatory captures (for highlighting). */
+  mandatorySources: Set<string>;
+  /** A suggested move to highlight, or null. */
+  hintMove: Move | null;
 }
 
 function createRuleEngine(ruleSet: RuleSet, boardSize: BoardSize = 8): RuleEngine {
@@ -90,6 +98,9 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     isThinkingRef.current = value;
     setIsThinking(value);
   }, []);
+
+  // A suggested move highlighted by the Hint button (cleared on any change).
+  const [hintMove, setHintMove] = useState<Move | null>(null);
 
   // Update game instance when config changes
   useEffect(() => {
@@ -270,6 +281,8 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     if (isThinkingRef.current) return;
     if (config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide)) return;
 
+    setHintMove(null); // any interaction dismisses a hint
+
     const piece = game.getBoard().getPiece(position);
 
     if (piece && piece.player === game.getCurrentPlayer()) {
@@ -307,17 +320,18 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     setSelectedPosition(null);
     setValidMoves([]);
     setErrorMessage(null);
+    setHintMove(null);
     setAnimationState({
       movingPieces: new Map(),
       capturedPieces: new Set(),
       promotedPieces: new Set()
     });
-    
+
     // Force a state update by clearing the cache and incrementing version
     cachedStateRef.current = null;
     setGameVersion(v => v + 1); // Trigger re-subscribe
   }, [config.ruleSet, config.boardSize]);
-  
+
   const undoMove = useCallback((): void => {
     const game = gameRef.current;
     if (game.undoMove()) {
@@ -329,16 +343,28 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       setSelectedPosition(null);
       setValidMoves([]);
       setErrorMessage(null);
+      setHintMove(null);
     }
   }, [config.mode, config.aiSide]);
-  
+
   const redoMove = useCallback((): void => {
     if (gameRef.current.redoMove()) {
       setSelectedPosition(null);
       setValidMoves([]);
       setErrorMessage(null);
+      setHintMove(null);
     }
   }, []);
+
+  const showHint = useCallback((): void => {
+    const game = gameRef.current;
+    if (game.isGameOver()) return;
+    // Only hint on the human's turn.
+    if (config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide)) return;
+    const ai = new MinimaxAI({ difficulty: 'medium' });
+    const move = ai.chooseMove(game.getBoard(), game.getCurrentPlayer(), game.getRuleEngine());
+    setHintMove(move);
+  }, [config.mode, config.aiSide]);
 
   // Combine game state with UI state
   const combinedGameState: CombinedGameState = {
@@ -349,11 +375,21 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     animationState
   };
 
+  // Highlight mandatory captures on the human's turn (a core rule to teach).
+  const game = gameRef.current;
+  const humanToMove = !game.isGameOver() &&
+    !(config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide));
+  const mandatoryMoves = humanToMove ? game.getMandatoryMoves() : [];
+  const mandatorySources = new Set(mandatoryMoves.map(m => m.from.hash()));
+
   return {
     gameState: combinedGameState,
-    actions: { selectPosition, undoMove, redoMove, newGame },
+    actions: { selectPosition, undoMove, redoMove, newGame, showHint },
     canUndo: gameState.moveHistory.length > 0,
     canRedo: gameRef.current.canRedo(),
     isThinking,
+    mustCapture: mandatoryMoves.length > 0,
+    mandatorySources,
+    hintMove,
   };
 }
