@@ -69,9 +69,13 @@ export class Game {
 
   /**
    * Checks if the game is over.
+   *
+   * Determined from the actual player to move (which the controller tracks),
+   * not from the rule engine's board-only `isGameOver` — that method has to
+   * guess whose turn it is from the board and is unreliable mid-game.
    */
   isGameOver(): boolean {
-    return this.gameOver || this.ruleEngine.isGameOver(this.board);
+    return this.gameOver || this.computeGameOver();
   }
 
   /**
@@ -79,7 +83,33 @@ export class Game {
    */
   getWinner(): Player | null {
     if (!this.isGameOver()) return null;
-    return this.winner || this.ruleEngine.getWinner(this.board);
+    return this.winner ?? this.computeWinner();
+  }
+
+  /**
+   * A game is over when either side has been eliminated or the player to move
+   * has no legal move.
+   */
+  private computeGameOver(): boolean {
+    if (this.board.getPieceCount(Player.RED) === 0 || this.board.getPieceCount(Player.BLACK) === 0) {
+      return true;
+    }
+    return this.ruleEngine.getAllPossibleMoves(this.board, this.currentPlayer).length === 0;
+  }
+
+  /**
+   * Determines the winner of a finished game. A player with no pieces — or the
+   * player to move when they have no legal move — loses.
+   */
+  private computeWinner(): Player | null {
+    const red = this.board.getPieceCount(Player.RED);
+    const black = this.board.getPieceCount(Player.BLACK);
+    if (black === 0) return Player.RED;
+    if (red === 0) return Player.BLACK;
+    if (this.ruleEngine.getAllPossibleMoves(this.board, this.currentPlayer).length === 0) {
+      return this.currentPlayer === Player.RED ? Player.BLACK : Player.RED;
+    }
+    return null;
   }
 
   /**
@@ -357,9 +387,9 @@ export class Game {
    * Checks if the game has ended.
    */
   private checkGameEnd(): void {
-    if (this.ruleEngine.isGameOver(this.board)) {
+    if (this.computeGameOver()) {
       this.gameOver = true;
-      this.winner = this.ruleEngine.getWinner(this.board);
+      this.winner = this.computeWinner();
     }
   }
 

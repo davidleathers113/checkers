@@ -50,9 +50,12 @@ export class MultiStepMoveValidator extends BaseMoveValidator {
       }
 
       if (step.captured) {
-        // Capture steps jump exactly two squares over a single opponent.
-        if (step.from.diagonalDistanceTo(step.to) !== 2) {
-          throw new InvalidMoveError(move, 'Capture step must span two squares');
+        // A capture step jumps one opponent that lies on the diagonal between
+        // the endpoints, with the rest of the path clear. This covers both a
+        // regular piece's two-square jump and a king's longer flying jump.
+        const between = step.from.getPositionsBetween(step.to);
+        if (!between.some(pos => pos.equals(step.captured!))) {
+          throw new InvalidMoveError(move, 'Captured piece must lie between step endpoints');
         }
 
         const capturedPiece = tempBoard.getPiece(step.captured);
@@ -60,9 +63,10 @@ export class MultiStepMoveValidator extends BaseMoveValidator {
           throw new InvalidMoveError(move, 'Capture step must jump an opponent piece');
         }
 
-        const middlePositions = step.from.getPositionsBetween(step.to);
-        if (middlePositions.length !== 1 || !middlePositions[0]!.equals(step.captured)) {
-          throw new InvalidMoveError(move, 'Captured piece must lie between step endpoints');
+        for (const pos of between) {
+          if (!pos.equals(step.captured) && !tempBoard.isEmpty(pos)) {
+            throw new InvalidMoveError(move, 'Capture path is blocked');
+          }
         }
 
         tempBoard = tempBoard.removePiece(step.captured);
