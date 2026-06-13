@@ -4,10 +4,11 @@ import { Move } from '../../../core/Move';
 import { Position } from '../../../core/Position';
 import { GameState as CoreGameState } from '../../../types';
 import { StandardRules } from '../../../rules/StandardRules';
+import { JumpOwnRules } from '../../../rules/JumpOwnRules';
 import { GameObserver } from '../../../core/GameObserver';
 import { RuleEngine } from '../../../rules/RuleEngine';
 import { useGameConfig } from '../contexts/GameConfigContext';
-import { ANIMATION_DURATIONS } from '../types/GameConfig';
+import { ANIMATION_DURATIONS, RuleSet, BoardSize } from '../types/GameConfig';
 
 // Import custom rule implementations - use relative paths from web directory
 import { InternationalDraughtsRules } from '../../../../examples/InternationalDraughts';
@@ -31,7 +32,7 @@ interface GameActions {
   selectPosition: (position: Position) => void;
   undoMove: () => void;
   redoMove: () => void;
-  newGame: (boardSize?: 8 | 10, ruleSet?: 'standard' | 'international' | 'crazy') => void;
+  newGame: (boardSize?: BoardSize, ruleSet?: RuleSet) => void;
 }
 
 interface UseConfigurableGameReturn {
@@ -41,12 +42,14 @@ interface UseConfigurableGameReturn {
   canRedo: boolean;
 }
 
-function createRuleEngine(ruleSet: 'standard' | 'international' | 'crazy', boardSize: 8 | 10 = 8): RuleEngine {
+function createRuleEngine(ruleSet: RuleSet, boardSize: BoardSize = 8): RuleEngine {
   switch (ruleSet) {
   case 'international':
     return new InternationalDraughtsRules(boardSize);
   case 'crazy':
     return new CrazyCheckersRules(boardSize);
+  case 'jumpOwn':
+    return new JumpOwnRules(boardSize);
   default:
     return new StandardRules(boardSize);
   }
@@ -224,7 +227,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     }
   }, [selectedPosition, validMoves]);
 
-  const newGame = useCallback((boardSize?: 8 | 10, ruleSet?: 'standard' | 'international' | 'crazy'): void => {
+  const newGame = useCallback((boardSize?: BoardSize, ruleSet?: RuleSet): void => {
     const rules = ruleSet || config.ruleSet;
     const size = boardSize || config.boardSize;
     

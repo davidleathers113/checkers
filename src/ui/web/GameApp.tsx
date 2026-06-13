@@ -5,14 +5,14 @@ import { GameBoard } from './components/GameBoard';
 import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
 import { GameConfig } from './components/GameConfig';
-import { THEME_COLORS } from './types/GameConfig';
+import { THEME_COLORS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
   const { config } = useGameConfig();
   const { gameState, actions, canUndo, canRedo } = useConfigurableGame();
   const [showConfig, setShowConfig] = useState(false);
 
-  const handleNewGame = (boardSize?: 8 | 10, ruleSet?: 'standard' | 'international' | 'crazy'): void => {
+  const handleNewGame = (boardSize?: BoardSize, ruleSet?: RuleSet): void => {
     actions.newGame(boardSize, ruleSet);
     setShowConfig(false);
   };

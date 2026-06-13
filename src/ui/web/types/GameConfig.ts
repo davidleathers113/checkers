@@ -1,6 +1,9 @@
+export type BoardSize = 8 | 10;
+export type RuleSet = 'standard' | 'international' | 'crazy' | 'jumpOwn';
+
 export interface GameConfig {
-  boardSize: 8 | 10;
-  ruleSet: 'standard' | 'international' | 'crazy';
+  boardSize: BoardSize;
+  ruleSet: RuleSet;
   theme: 'classic' | 'modern' | 'dark';
   animationSpeed: 'slow' | 'normal' | 'fast';
   showMoveHints: boolean;
