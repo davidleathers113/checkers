@@ -97,6 +97,9 @@ function GameAppContent(): React.JSX.Element {
           validMoves={gameState.validMoves}
           animationState={gameState.animationState}
           onSquareClick={actions.selectPosition}
+          onDragMove={actions.dragMove}
+          currentPlayer={gameState.currentPlayer}
+          locked={isThinking}
           showMoveHints={config.showMoveHints}
           mandatorySources={mandatorySources}
           hintMove={hintMove}

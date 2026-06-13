@@ -453,6 +453,53 @@ body::before {
   50% { box-shadow: 0 0 22px 6px rgba(233, 200, 105, 0.85); }
 }
 
+/* ── Drag & drop ────────────────────────────────────────────────────────── */
+
+/* Prevent the page from scrolling/selecting while dragging a piece. */
+.game-board {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The piece left behind at the origin fades while it is being carried. */
+.game-piece.drag-source {
+  opacity: 0.22;
+  filter: none;
+}
+
+/* The lifted piece that follows the pointer. */
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: drop-shadow(0 18px 16px rgba(20, 10, 4, 0.55));
+}
+.drag-ghost .game-piece {
+  width: 100%;
+  height: 100%;
+  cursor: grabbing;
+  animation: ghostPop 0.16s var(--ease-spring) both;
+}
+@keyframes ghostPop {
+  from { transform: scale(0.86); }
+  to { transform: scale(1.12); }
+}
+
+/* The valid target currently under the pointer gets a strong drop ring. */
+.game-square.drop-hover::after {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px var(--gold-bright), 0 0 22px 4px rgba(233, 200, 105, 0.6);
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* ── Status ─────────────────────────────────────────────────────────────── */
 
 .game-status {

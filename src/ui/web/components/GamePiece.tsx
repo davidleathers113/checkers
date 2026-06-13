@@ -9,6 +9,7 @@ interface GamePieceProps {
   isMoving?: boolean;
   isCaptured?: boolean;
   isPromoted?: boolean;
+  isDragSource?: boolean;
   /** Cell offset (origin − destination) used to animate a glide into place. */
   moveDelta?: { dx: number; dy: number };
 }
@@ -19,10 +20,12 @@ export function GamePiece({
   isMoving,
   isCaptured,
   isPromoted,
+  isDragSource,
   moveDelta
 }: GamePieceProps): React.JSX.Element {
   const playerClass = piece.player === Player.RED ? 'red' : 'black';
   const kingClass = piece.isKing() ? 'king' : '';
+  const dragClass = isDragSource ? 'drag-source' : '';
 
   let animationClass = '';
   if (isCaptured) animationClass = 'capturing';
@@ -30,6 +33,9 @@ export function GamePiece({
   else if (isPromoted) animationClass = 'promoting';
 
   const playerName = piece.player === Player.RED ? 'red' : 'black';
+  const className = ['game-piece', playerClass, kingClass, animationClass, dragClass]
+    .filter(Boolean)
+    .join(' ');
 
   const style =
     isMoving && moveDelta
@@ -38,7 +44,7 @@ export function GamePiece({
 
   return (
     <div
-      className={`game-piece ${playerClass} ${kingClass} ${animationClass}`.trim()}
+      className={className}
       data-testid={`game-piece-${playerName}-${position.row}-${position.col}`}
       style={style}
       role="img"

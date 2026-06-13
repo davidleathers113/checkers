@@ -16,13 +16,13 @@ interface GameSquareProps {
   isMustMove?: boolean;
   isHintFrom?: boolean;
   isHintTo?: boolean;
-  /** Kind of move that lands here, used to vary the target affordance. */
   validMoveType?: MoveTargetType;
-  /** Show a capture burst (a piece was just taken from this square). */
   isCaptureBurst?: boolean;
-  /** Cell offset for a gliding piece. */
+  isDragSource?: boolean;
+  isDropHover?: boolean;
   moveDelta?: { dx: number; dy: number };
   onClick: () => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
 }
 
 export function GameSquare({
@@ -38,8 +38,11 @@ export function GameSquare({
   isHintTo = false,
   validMoveType,
   isCaptureBurst = false,
+  isDragSource = false,
+  isDropHover = false,
   moveDelta,
-  onClick
+  onClick,
+  onPointerDown
 }: GameSquareProps): React.JSX.Element {
   const isDark = position.isDarkSquare();
 
@@ -50,12 +53,14 @@ export function GameSquare({
   if (isHintFrom) className += ' hint-from';
   if (isHintTo) className += ' hint-to';
   if (isCaptureBurst) className += ' capture-burst';
+  if (isDropHover) className += ' drop-hover';
 
   return (
     <div
       className={className}
       data-testid={`game-square-${position.row}-${position.col}`}
       onClick={onClick}
+      onPointerDown={onPointerDown}
     >
       {piece && (
         <GamePiece
@@ -64,6 +69,7 @@ export function GameSquare({
           isMoving={isMoving}
           isCaptured={isCaptured}
           isPromoted={isPromoted}
+          isDragSource={isDragSource}
           moveDelta={moveDelta}
         />
       )}
