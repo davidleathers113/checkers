@@ -1,0 +1,19 @@
+{
+  "name": "Extensible Checkers",
+  "short_name": "Checkers",
+  "description": "Play and learn checkers — Standard, International, Crazy, and Jump Your Own Man — against a friend or the computer.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1f2937",
+  "theme_color": "#b58863",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

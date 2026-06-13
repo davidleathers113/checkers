@@ -11,24 +11,33 @@ interface GameSquareProps {
   isMoving: boolean;
   isCaptured: boolean;
   isPromoted: boolean;
+  isMustMove?: boolean;
+  isHintFrom?: boolean;
+  isHintTo?: boolean;
   onClick: () => void;
 }
 
-export function GameSquare({ 
-  position, 
-  piece, 
-  isSelected, 
-  isValidMove, 
+export function GameSquare({
+  position,
+  piece,
+  isSelected,
+  isValidMove,
   isMoving,
   isCaptured,
   isPromoted,
-  onClick 
+  isMustMove = false,
+  isHintFrom = false,
+  isHintTo = false,
+  onClick
 }: GameSquareProps): React.JSX.Element {
   const isDark = position.isDarkSquare();
-  
+
   let className = `game-square ${isDark ? 'dark' : 'light'}`;
   if (isSelected) className += ' selected';
   if (isValidMove) className += ' valid-move';
+  if (isMustMove) className += ' must-move';
+  if (isHintFrom) className += ' hint-from';
+  if (isHintTo) className += ' hint-to';
 
   return (
     <div 

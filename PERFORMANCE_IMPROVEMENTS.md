@@ -21,7 +21,8 @@
 **Problem**: The recursive capture search created new Board instances for every potential jump, causing exponential memory allocation.
 
 **Solution**:
-- Refactored `getCaptureMoveHelper` to use a stateless graph traversal
+- Refactored capture search (`RegularPiece.findCaptureSequences` /
+  `KingPiece.getCapturesInDirection`) to use a stateless graph traversal
 - Track captured pieces in a Set to prevent re-capture
 - Single board instance used throughout the entire search
 
@@ -76,8 +77,8 @@
 ## Code Quality Improvements
 
 1. **Type Safety**: Full TypeScript compliance with no errors
-2. **Linting**: All ESLint rules pass
-3. **Testing**: 164 tests pass including new performance benchmarks
+2. **Linting**: All ESLint rules pass (ESLint 9, flat config)
+3. **Testing**: 292 tests pass including performance benchmarks; 80% coverage gate met
 4. **Browser Support**: Proper configuration for React web UI
 
 ## Next Steps

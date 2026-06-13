@@ -17,15 +17,21 @@ interface GameBoardProps {
   animationState: AnimationState;
   onSquareClick: (position: Position) => void;
   showMoveHints: boolean;
+  /** Source squares of mandatory capture moves (highlighted when must-capture). */
+  mandatorySources?: Set<string>;
+  /** A suggested move to highlight (from the Hint button). */
+  hintMove?: Move | null;
 }
 
-export function GameBoard({ 
-  board, 
-  selectedPosition, 
-  validMoves, 
+export function GameBoard({
+  board,
+  selectedPosition,
+  validMoves,
   animationState,
   onSquareClick,
-  showMoveHints
+  showMoveHints,
+  mandatorySources,
+  hintMove
 }: GameBoardProps): React.JSX.Element {
   const squares = [];
   
@@ -40,7 +46,10 @@ export function GameBoard({
       const isMoving = animationState.movingPieces.has(posKey);
       const isCaptured = animationState.capturedPieces.has(posKey);
       const isPromoted = animationState.promotedPieces.has(posKey);
-      
+      const isMustMove = showMoveHints && (mandatorySources?.has(posKey) ?? false);
+      const isHintFrom = hintMove?.from.equals(position) ?? false;
+      const isHintTo = hintMove?.to.equals(position) ?? false;
+
       squares.push(
         <GameSquare
           key={`${row}-${col}`}
@@ -51,6 +60,9 @@ export function GameBoard({
           isMoving={isMoving}
           isCaptured={isCaptured}
           isPromoted={isPromoted}
+          isMustMove={isMustMove}
+          isHintFrom={isHintFrom}
+          isHintTo={isHintTo}
           onClick={() => onSquareClick(position)}
         />
       );

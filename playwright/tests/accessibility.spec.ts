@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
+import type { Result } from 'axe-core';
 import { GamePage } from '../support/gamePage';
 
 test.describe('Accessibility Tests', () => {
@@ -45,7 +46,7 @@ test.describe('Accessibility Tests', () => {
         .analyze();
       
       const contrastViolations = accessibilityScanResults.violations.filter(
-        (violation: any) => violation.id === 'color-contrast'
+        (violation: Result) => violation.id === 'color-contrast'
       );
       
       expect(contrastViolations).toHaveLength(0);
@@ -388,7 +389,7 @@ test.describe('Accessibility Tests', () => {
           .analyze();
         
         const contrastViolations = contrastResults.violations.filter(
-          (violation: any) => violation.id === 'color-contrast'
+          (violation: Result) => violation.id === 'color-contrast'
         );
         
         expect(contrastViolations).toHaveLength(0);

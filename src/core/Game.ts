@@ -29,6 +29,9 @@ export class Game {
 
   constructor(config: Partial<GameConfig> = {}) {
     this.ruleEngine = config.ruleEngine || new StandardRules();
+    // Optional cross-cutting validators a host can opt into via
+    // getValidationEngine()/setValidationEngine(); empty by default so it does
+    // not impose standard-rule constraints on custom RuleEngine variants.
     this.validationEngine = new ValidationEngine();
     this.currentPlayer = config.startingPlayer || Player.RED;
     this.board = this.ruleEngine.getInitialBoard();
@@ -235,6 +238,20 @@ export class Game {
   }
 
   /**
+   * Whether there is a move that can be undone.
+   */
+  canUndo(): boolean {
+    return this.history.length > 0;
+  }
+
+  /**
+   * Whether there is an undone move that can be redone.
+   */
+  canRedo(): boolean {
+    return this.redoStack.length > 0;
+  }
+
+  /**
    * Resets the game to initial state.
    */
   reset(): void {
@@ -348,18 +365,28 @@ export class Game {
 
 
   /**
-   * Gets captured pieces from move history.
+   * Reconstructs the pieces captured over the course of the game, in capture
+   * order, by replaying the move history from the initial board. Replaying
+   * keeps this consistent with undo/redo (which mutate the history) without
+   * having to store captured pieces alongside each move.
    */
   private getCapturedPieces(): Piece[] {
-    // Calculate captured pieces from move history
+    const history = this.getHistory();
+    if (history.length === 0) return [];
+
     const captured: Piece[] = [];
-    for (const move of this.getHistory()) {
-      if (move.isCapture()) {
-        // Note: In a real implementation, we'd need to track the actual captured pieces
-        // For now, return an empty array since we can't reconstruct the pieces
-        // This would require storing captured pieces with each move
+    let board = this.ruleEngine.getInitialBoard();
+
+    for (const move of history) {
+      for (const capturePos of move.captures) {
+        const piece = board.getPiece(capturePos);
+        if (piece) {
+          captured.push(piece);
+        }
       }
+      board = move.apply(board);
     }
+
     return captured;
   }
 

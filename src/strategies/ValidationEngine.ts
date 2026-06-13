@@ -1,4 +1,9 @@
 import { MoveValidator } from './MoveValidator';
+import { BasicMoveValidator } from './BasicMoveValidator';
+import { DiagonalMoveValidator } from './DiagonalMoveValidator';
+import { CaptureValidator } from './CaptureValidator';
+import { MultiStepMoveValidator } from './MultiStepMoveValidator';
+import { MandatoryCaptureValidator } from './MandatoryCaptureValidator';
 import { Board } from '../core/Board';
 import { Move } from '../core/Move';
 import { Player } from '../types';
@@ -133,23 +138,25 @@ export class ValidationEngine {
   }
 
   /**
-   * Creates a default validation engine with standard validators.
+   * Creates a validation engine populated with the standard checkers
+   * validators, ordered by priority:
+   *   Basic (0) -> Diagonal (5) -> Capture (10) -> MultiStep (15) -> Mandatory (20)
    */
-  static async createDefault(): Promise<ValidationEngine> {
+  static createStandard(): ValidationEngine {
     const engine = new ValidationEngine();
-    
-    // Add default validators
-    const { BasicMoveValidator } = await import('./BasicMoveValidator');
-    const { DiagonalMoveValidator } = await import('./DiagonalMoveValidator');
-    const { CaptureValidator } = await import('./CaptureValidator');
-    const { MandatoryCaptureValidator } = await import('./MandatoryCaptureValidator');
-
     engine.addValidator(new BasicMoveValidator());
     engine.addValidator(new DiagonalMoveValidator());
     engine.addValidator(new CaptureValidator());
+    engine.addValidator(new MultiStepMoveValidator());
     engine.addValidator(new MandatoryCaptureValidator());
-
     return engine;
+  }
+
+  /**
+   * Async alias for {@link createStandard}, retained for backwards compatibility.
+   */
+  static async createDefault(): Promise<ValidationEngine> {
+    return ValidationEngine.createStandard();
   }
 
   /**

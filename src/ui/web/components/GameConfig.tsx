@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useGameConfig } from '../contexts/GameConfigContext';
-import { GameConfig as GameConfigType } from '../types/GameConfig';
+import { GameConfig as GameConfigType, RuleSet, BoardSize } from '../types/GameConfig';
 
 interface GameConfigProps {
   onClose: () => void;
-  onNewGame: (boardSize: 8 | 10, ruleSet: 'standard' | 'international' | 'crazy') => void;
+  onNewGame: (boardSize: BoardSize, ruleSet: RuleSet) => void;
 }
 
 export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.Element {
@@ -12,18 +12,19 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Partial<GameConfigType>>({});
 
-  const handleBoardSizeChange = (size: 8 | 10): void => {
+  const handleBoardSizeChange = (size: BoardSize): void => {
     if (size !== config.boardSize) {
       setPendingChanges({ boardSize: size, ruleSet: size === 10 ? 'international' : 'standard' });
       setShowConfirm(true);
     }
   };
 
-  const handleRuleSetChange = (ruleSet: 'standard' | 'international' | 'crazy'): void => {
+  const handleRuleSetChange = (ruleSet: RuleSet): void => {
     if (ruleSet !== config.ruleSet) {
       if (ruleSet === 'international' && config.boardSize === 8) {
         setPendingChanges({ boardSize: 10, ruleSet });
-      } else if ((ruleSet === 'standard' || ruleSet === 'crazy') && config.boardSize === 10) {
+      } else if (ruleSet !== 'international' && config.boardSize === 10) {
+        // standard, crazy, and jumpOwn all play on an 8x8 board
         setPendingChanges({ boardSize: 8, ruleSet });
       } else {
         setPendingChanges({ ruleSet });
@@ -90,7 +91,77 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
               <span>Crazy Checkers</span>
               <small>Experimental rules with unique mechanics</small>
             </label>
+            <label className={`config-option ${config.ruleSet === 'jumpOwn' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="ruleSet"
+                value="jumpOwn"
+                checked={config.ruleSet === 'jumpOwn'}
+                onChange={() => handleRuleSetChange('jumpOwn')}
+              />
+              <span>Jump Your Own Man</span>
+              <small>Standard rules, plus you can hop over your own pieces</small>
+            </label>
           </div>
+        </div>
+
+        <div className="config-section">
+          <h3>Opponent</h3>
+          <div className="config-options horizontal">
+            <label className={`config-option ${config.mode === 'human' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="human"
+                data-testid="mode-human"
+                checked={config.mode === 'human'}
+                onChange={() => updateConfig({ mode: 'human' })}
+              />
+              <span>Two Players</span>
+            </label>
+            <label className={`config-option ${config.mode === 'ai' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="ai"
+                data-testid="mode-ai"
+                checked={config.mode === 'ai'}
+                onChange={() => updateConfig({ mode: 'ai' })}
+              />
+              <span>vs Computer</span>
+            </label>
+          </div>
+
+          {config.mode === 'ai' && (
+            <div className="config-subsection" data-testid="ai-options">
+              <div className="config-options horizontal">
+                {(['easy', 'medium', 'hard'] as const).map(level => (
+                  <label
+                    key={level}
+                    className={`config-option ${config.difficulty === level ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="difficulty"
+                      value={level}
+                      checked={config.difficulty === level}
+                      onChange={() => updateConfig({ difficulty: level })}
+                    />
+                    <span>{level.charAt(0).toUpperCase() + level.slice(1)}</span>
+                  </label>
+                ))}
+              </div>
+              <label className="config-checkbox">
+                <input
+                  type="checkbox"
+                  data-testid="ai-moves-first-checkbox"
+                  checked={config.aiSide === 'red'}
+                  onChange={(e) => updateConfig({ aiSide: e.target.checked ? 'red' : 'black' })}
+                />
+                <span>Computer moves first</span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="config-section">

@@ -47,8 +47,9 @@ export class DiagonalMoveValidator extends BaseMoveValidator {
         );
       }
 
-      // Check direction for regular pieces
-      if (!this.isValidDirectionForRegularPiece(move, piece.player)) {
+      // Direction constraint applies to non-capture moves only; regular pieces
+      // may capture in any diagonal direction (see RegularPiece.getCaptureMoves).
+      if (!move.isCapture() && !this.isValidDirectionForRegularPiece(move, piece.player)) {
         throw new InvalidMoveError(move, 'Regular pieces can only move forward');
       }
     } else {

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 🛠 Quick Commands
 - **Build**: `npm run build` (TypeScript compilation to dist/)
 - **Test**: `npm test` (Jest test suite) | `npm test -- -t "<name>"` (single test)
-- **Dev**: `npm run dev` (Run game via ts-node)
+- **Dev**: `npm run dev` (Run the React web app via Vite)
 - **Watch Tests**: `npm test:watch` (Jest in watch mode)
 - **Lint**: `npm run lint` (ESLint)
 - **Type Check**: `npm run typecheck` (tsc --noEmit)
@@ -38,7 +38,7 @@ This is an extensible checkers game built with clean architecture principles. Th
 - `src/pieces/`: Piece hierarchy (Piece abstract → RegularPiece/KingPiece)
 - `src/rules/`: Pluggable rule system via RuleEngine interface
 - `src/strategies/`: Validation algorithms (MoveValidator, CaptureValidator)
-- `src/ui/`: UI implementations (currently Console)
+- `src/ui/`: UI layer — React web app (`src/ui/web/`); `GameUI` interface as an extension point
 
 **Design Patterns Used**:
 - **Strategy**: RuleEngine allows different game rules (StandardRules, custom variants)

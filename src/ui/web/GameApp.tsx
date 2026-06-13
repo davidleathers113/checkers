@@ -5,14 +5,17 @@ import { GameBoard } from './components/GameBoard';
 import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
 import { GameConfig } from './components/GameConfig';
-import { THEME_COLORS } from './types/GameConfig';
+import { HelpPanel } from './components/HelpPanel';
+import { THEME_COLORS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
   const { config } = useGameConfig();
-  const { gameState, actions, canUndo, canRedo } = useConfigurableGame();
+  const { gameState, actions, canUndo, canRedo, isThinking, mustCapture, mandatorySources, hintMove } =
+    useConfigurableGame();
   const [showConfig, setShowConfig] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
-  const handleNewGame = (boardSize?: 8 | 10, ruleSet?: 'standard' | 'international' | 'crazy'): void => {
+  const handleNewGame = (boardSize?: BoardSize, ruleSet?: RuleSet): void => {
     actions.newGame(boardSize, ruleSet);
     setShowConfig(false);
   };
@@ -38,8 +41,8 @@ function GameAppContent(): React.JSX.Element {
   return (
     <div className={appClass}>
       <main className="game-container" role="main">
-        <button 
-          className="settings-btn" 
+        <button
+          className="settings-btn"
           data-testid="settings-button"
           onClick={() => setShowConfig(true)}
           aria-label="Game Settings"
@@ -47,15 +50,36 @@ function GameAppContent(): React.JSX.Element {
           ⚙️
         </button>
 
+        <button
+          className="help-btn"
+          data-testid="help-button"
+          onClick={() => setShowHelp(true)}
+          aria-label="How to Play"
+        >
+          ❓
+        </button>
+
         <h1>Extensible Checkers</h1>
         
-        <GameStatus 
+        <GameStatus
           currentPlayer={gameState.currentPlayer}
           gameOver={gameState.isGameOver}
           winner={gameState.winner}
           moveCount={gameState.moveHistory.length}
         />
-        
+
+        {isThinking && (
+          <div className="thinking-indicator" data-testid="thinking-indicator" role="status">
+            🤔 Computer is thinking…
+          </div>
+        )}
+
+        {mustCapture && !gameState.isGameOver && !isThinking && (
+          <div className="capture-alert" data-testid="capture-alert" role="status">
+            ⚡ You must jump!
+          </div>
+        )}
+
         <GameBoard
           board={gameState.board}
           selectedPosition={gameState.selectedPosition}
@@ -63,6 +87,8 @@ function GameAppContent(): React.JSX.Element {
           animationState={gameState.animationState}
           onSquareClick={actions.selectPosition}
           showMoveHints={config.showMoveHints}
+          mandatorySources={mandatorySources}
+          hintMove={hintMove}
         />
         
         {gameState.errorMessage && (
@@ -80,11 +106,26 @@ function GameAppContent(): React.JSX.Element {
           gameOver={gameState.isGameOver}
         />
 
+        <div className="extra-controls">
+          <button
+            className="btn btn-hint"
+            data-testid="hint-button"
+            onClick={actions.showHint}
+            disabled={gameState.isGameOver || isThinking}
+          >
+            💡 Hint
+          </button>
+        </div>
+
         {showConfig && (
-          <GameConfig 
+          <GameConfig
             onClose={() => setShowConfig(false)}
             onNewGame={handleNewGame}
           />
+        )}
+
+        {showHelp && (
+          <HelpPanel ruleSet={config.ruleSet} onClose={() => setShowHelp(false)} />
         )}
       </main>
     </div>

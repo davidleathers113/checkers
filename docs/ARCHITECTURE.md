@@ -24,12 +24,6 @@ The `Game` class notifies observers of state changes:
 - UI components can react to game updates
 - Analytics and logging can track game progress
 
-### Factory Pattern
-`PieceFactory` creates appropriate piece types:
-- Regular pieces
-- King pieces
-- Future piece types (for variants)
-
 ### Command Pattern
 Moves are encapsulated as commands for:
 - Undo/redo functionality
@@ -43,8 +37,8 @@ Foundation classes with no external dependencies:
 
 ```
 Board
-├── Manages 8x8 grid state
-├── Immutable operations
+├── Manages the grid state (default 8x8; configurable, e.g. 10x10)
+├── Immutable, copy-on-write operations (flat array)
 └── Piece placement/movement
 
 Position
@@ -91,19 +85,22 @@ CustomRules (abstract)
 ```
 
 ### 4. Strategies Layer (`src/strategies/`)
-Algorithmic components:
+Move validation, orchestrated by the `ValidationEngine`. `StandardRules`
+delegates `validateMove()` to an engine that runs validators in priority order:
 
 ```
-MoveValidator
-├── Basic move validation
-├── Capture detection
-└── King promotion
-
-CaptureValidator
-├── Multiple jump logic
-├── Mandatory capture rules
-└── Capture sequences
+ValidationEngine
+├── BasicMoveValidator (0)        — positions valid, piece exists/owned, dest empty
+├── DiagonalMoveValidator (5)     — diagonal + distance/direction (forward for
+│                                    regular non-captures; flying for kings)
+├── CaptureValidator (10)         — captured squares hold opponents; jump path
+├── MultiStepMoveValidator (15)   — simulates multi-jump steps on a temp board
+└── MandatoryCaptureValidator (20)— forces captures and the maximum-capture rule
 ```
+
+The engine aggregates validator errors (`validateMove` throws,
+`validateMoveQuiet` returns a result). Hosts can register additional
+cross-cutting validators via `Game.getValidationEngine()`.
 
 ### 5. Game Controller (`src/core/Game.ts`)
 Orchestrates game flow:
@@ -151,13 +148,21 @@ abstract class Piece {
 ```
 
 ### Custom UI
-Implement `GameUI` interface:
+The shipped interface is the React web app (`src/ui/web/`), driven by the
+`useConfigurableGame` hook over the `Game`'s Observer notifications. The
+`GameUI` interface (`src/ui/GameUI.ts`) remains as an extension point for
+alternative presentation layers:
 ```typescript
 interface GameUI {
   render(board: Board): void;
   getMove(): Promise<Move>;
   showMessage(message: string): void;
   onGameEnd(winner: Player | null): void;
+  highlightMoves(moves: Move[]): void;
+  clearHighlights(): void;
+  showError(error: string): void;
+  updateCurrentPlayer(player: Player): void;
+  // optional: highlightPosition, showMoveHistory, initialize, destroy
 }
 ```
 

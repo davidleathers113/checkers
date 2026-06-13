@@ -2,6 +2,7 @@ import { RuleEngine } from './RuleEngine';
 import { Board } from '../core/Board';
 import { Move } from '../core/Move';
 import { Position } from '../core/Position';
+import { ValidationEngine } from '../strategies/ValidationEngine';
 import { Player } from '../types';
 import { Piece, RegularPiece } from '../pieces';
 
@@ -15,43 +16,26 @@ import { Piece, RegularPiece } from '../pieces';
  */
 export class StandardRules implements RuleEngine {
   private readonly boardSize: number;
+  private readonly validationEngine: ValidationEngine;
 
   constructor(boardSize: number = 8) {
     this.boardSize = boardSize;
+    this.validationEngine = ValidationEngine.createStandard();
   }
 
   /**
    * Validates if a move is legal according to standard rules.
+   *
+   * Delegates to the priority-ordered {@link ValidationEngine} (the single
+   * source of truth for move legality). The move is validated from the
+   * perspective of the piece's own owner; turn ownership relative to the
+   * active player is enforced separately by the Game controller.
    */
   validateMove(board: Board, move: Move): boolean {
     const piece = board.getPiece(move.from);
     if (!piece) return false;
 
-    // For multi-step moves, validate each step
-    if (move.steps.length > 1) {
-      return this.validateMultiStepMove(board, move, piece);
-    }
-
-    // Check basic move validity
-    if (!piece.canMove(move.from, move.to, board)) {
-      return false;
-    }
-
-    // Get mandatory moves for the current player
-    const mandatoryMoves = this.getMandatoryMoves(board, piece.player);
-    
-    // If there are mandatory moves, the move must be one of them
-    if (mandatoryMoves.length > 0) {
-      return mandatoryMoves.some(mandatory => mandatory.equals(move));
-    }
-
-    // Check if this is a valid non-capture move
-    if (!move.isCapture()) {
-      return this.isValidRegularMove(board, move, piece);
-    }
-
-    // Validate capture move
-    return this.isValidCaptureMove(board, move, piece);
+    return this.validationEngine.validateMoveQuiet(board, move, piece.player).isValid;
   }
 
   /**
@@ -251,122 +235,6 @@ export class StandardRules implements RuleEngine {
 
     if (redCount > maxPieces || blackCount > maxPieces) {
       return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Validates a multi-step move by checking each step.
-   */
-  private validateMultiStepMove(board: Board, move: Move, piece: Piece): boolean {
-    let tempBoard = board;
-    let currentPos = move.from;
-    const player = piece.player;
-    
-    // Validate each step
-    for (const step of move.steps) {
-      // Verify we're at the expected position
-      if (!step.from.equals(currentPos)) {
-        return false;
-      }
-      
-      // Get the piece at current position
-      const currentPiece = tempBoard.getPiece(step.from);
-      if (!currentPiece || currentPiece.player !== player) {
-        return false;
-      }
-      
-      // Check if the step is diagonal
-      if (!step.from.isOnSameDiagonalAs(step.to)) {
-        return false;
-      }
-      
-      // Check if destination is empty
-      if (!tempBoard.isEmpty(step.to)) {
-        return false;
-      }
-      
-      // For capture steps, validate the capture
-      if (step.captured) {
-        const distance = step.from.diagonalDistanceTo(step.to);
-        if (distance !== 2) {
-          return false;
-        }
-        
-        const capturedPiece = tempBoard.getPiece(step.captured);
-        if (!capturedPiece || capturedPiece.player === player) {
-          return false;
-        }
-        
-        // Verify captured position is between from and to
-        const middlePositions = step.from.getPositionsBetween(step.to);
-        if (middlePositions.length !== 1 || !middlePositions[0]!.equals(step.captured)) {
-          return false;
-        }
-        
-        // Apply the capture to the temporary board
-        tempBoard = tempBoard.removePiece(step.captured);
-      } else {
-        // Non-capture steps must be single diagonal moves
-        const distance = step.from.diagonalDistanceTo(step.to);
-        if (distance !== 1) {
-          return false;
-        }
-      }
-      
-      // Move the piece on the temporary board
-      tempBoard = tempBoard.movePiece(step.from, step.to);
-      currentPos = step.to;
-    }
-    
-    // Verify the move is mandatory if there are captures available
-    const mandatoryMoves = this.getMandatoryMoves(board, player);
-    if (mandatoryMoves.length > 0) {
-      return mandatoryMoves.some(mandatory => mandatory.equals(move));
-    }
-    
-    return true;
-  }
-
-  /**
-   * Validates a regular (non-capture) move.
-   */
-  private isValidRegularMove(board: Board, move: Move, piece: Piece): boolean {
-    // Regular moves must be exactly one square
-    const distance = move.getDistance();
-    if (distance !== 1) return false;
-
-    // Must move to empty square
-    if (!board.isEmpty(move.to)) return false;
-
-    // Must be diagonal
-    if (!move.isDiagonal()) return false;
-
-    // Regular pieces can only move forward
-    if (!piece.isKing()) {
-      const isForward = piece.player === Player.RED
-        ? move.to.row < move.from.row
-        : move.to.row > move.from.row;
-      
-      if (!isForward) return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Validates a capture move.
-   */
-  private isValidCaptureMove(board: Board, move: Move, piece: Piece): boolean {
-    if (!move.isCapture()) return false;
-
-    // All captured pieces must be opponents
-    for (const capturePos of move.captures) {
-      const capturedPiece = board.getPiece(capturePos);
-      if (!capturedPiece || capturedPiece.player === piece.player) {
-        return false;
-      }
     }
 
     return true;

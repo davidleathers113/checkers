@@ -1,9 +1,21 @@
+export type BoardSize = 8 | 10;
+export type RuleSet = 'standard' | 'international' | 'crazy' | 'jumpOwn';
+export type GameMode = 'human' | 'ai';
+export type AiSide = 'red' | 'black';
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export interface GameConfig {
-  boardSize: 8 | 10;
-  ruleSet: 'standard' | 'international' | 'crazy';
+  boardSize: BoardSize;
+  ruleSet: RuleSet;
   theme: 'classic' | 'modern' | 'dark';
   animationSpeed: 'slow' | 'normal' | 'fast';
   showMoveHints: boolean;
+  /** Whether the second player is a human or the computer. */
+  mode: GameMode;
+  /** Which colour the computer plays when mode is 'ai'. */
+  aiSide: AiSide;
+  /** Computer difficulty when mode is 'ai'. */
+  difficulty: Difficulty;
 }
 
 export const defaultConfig: GameConfig = {
@@ -11,7 +23,10 @@ export const defaultConfig: GameConfig = {
   ruleSet: 'standard',
   theme: 'classic',
   animationSpeed: 'normal',
-  showMoveHints: true
+  showMoveHints: true,
+  mode: 'human',
+  aiSide: 'black',
+  difficulty: 'easy'
 };
 
 export const ANIMATION_DURATIONS = {
