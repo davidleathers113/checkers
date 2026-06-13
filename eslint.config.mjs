@@ -46,7 +46,8 @@ export default [
         }
       },
       globals: {
-        ...globals.browser
+        ...globals.browser,
+        __PROD__: 'readonly'
       }
     },
     plugins: {
@@ -117,6 +118,22 @@ export default [
       globals: {
         ...globals.browser
       }
+    }
+  },
+  {
+    // The service worker is a classic (non-module) script with its own globals
+    // (self, caches, clients, fetch, …).
+    files: ['**/sw.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      sourceType: 'script',
+      globals: {
+        ...globals.serviceworker,
+        ...globals.browser
+      }
+    },
+    rules: {
+      ...js.configs.recommended.rules
     }
   },
   {
