@@ -15,21 +15,32 @@ export function GameStatus({
   moveCount 
 }: GameStatusProps): React.JSX.Element {
   const playerName = (player: Player): string => player === Player.RED ? 'Red' : 'Black';
-  const playerColorClass = currentPlayer === Player.RED ? 'red' : 'black';
+  const playerColorOf = (player: Player): string => (player === Player.RED ? 'red' : 'black');
+  const playerColorClass = playerColorOf(currentPlayer);
   
   return (
     <div className="game-status" data-testid="game-status">
       {gameOver ? (
-        <div className="game-over" data-testid="game-over-message">
+        <div
+          className={`game-over ${winner ? `winner-${playerColorOf(winner)}` : 'draw'}`}
+          data-testid="game-over-message"
+        >
           {winner ? (
-            `Game Over - ${playerName(winner)} Wins!`
+            <>
+              <span className="crown" aria-hidden="true">👑</span>
+              {playerName(winner)} wins!
+            </>
           ) : (
-            'Game Over - Draw!'
+            'It\'s a draw!'
           )}
         </div>
       ) : (
         <>
-          <div className={`current-player ${playerColorClass}`} data-testid="current-player">
+          <div
+            key={currentPlayer}
+            className={`current-player ${playerColorClass}`}
+            data-testid="current-player"
+          >
             Current Turn: {playerName(currentPlayer)}
           </div>
           <div className="move-count" data-testid="move-count">Move {moveCount + 1}</div>

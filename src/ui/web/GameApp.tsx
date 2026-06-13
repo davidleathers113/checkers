@@ -6,6 +6,7 @@ import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
 import { GameConfig } from './components/GameConfig';
 import { HelpPanel } from './components/HelpPanel';
+import { Confetti } from './components/Confetti';
 import { THEME_COLORS, ANIMATION_DURATIONS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
@@ -39,8 +40,11 @@ function GameAppContent(): React.JSX.Element {
     root.style.setProperty('--glide-dur', `${ANIMATION_DURATIONS[config.animationSpeed]}ms`);
   }, [config.theme, config.animationSpeed]);
 
+  const celebrate = gameState.isGameOver && gameState.winner !== null;
+
   return (
     <div className={appClass}>
+      {celebrate && <Confetti key={gameState.moveHistory.length} />}
       <main className="game-container" role="main">
         <button
           className="settings-btn"
