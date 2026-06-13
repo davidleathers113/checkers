@@ -16,6 +16,13 @@ coverage/
 *.lcov
 .early.coverage/
 
+# Playwright / E2E artifacts
+playwright-report/
+test-results/
+
+# Repomix output
+repomix-output.md
+
 # Environment files
 .env
 .env.local
