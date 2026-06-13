@@ -276,6 +276,15 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
             />
             <span>Show move hints</span>
           </label>
+          <label className="config-checkbox">
+            <input
+              type="checkbox"
+              data-testid="sound-checkbox"
+              checked={config.sound}
+              onChange={(e) => updateConfig({ sound: e.target.checked })}
+            />
+            <span>Sound &amp; haptics</span>
+          </label>
         </div>
 
         <div className="config-actions">

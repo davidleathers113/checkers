@@ -10,6 +10,7 @@ import { RuleEngine } from '../../../rules/RuleEngine';
 import { MinimaxAI } from '../../../ai/MinimaxAI';
 import { useGameConfig } from '../contexts/GameConfigContext';
 import { ANIMATION_DURATIONS, RuleSet, BoardSize, AiSide } from '../types/GameConfig';
+import { setSoundMuted, playMove, playCapture, playPromote, playWin, vibrate } from '../sound';
 
 /** How long the computer "thinks" before moving, so its move is visible. */
 const AI_THINK_DELAY_MS = 450;
@@ -37,7 +38,9 @@ interface CombinedGameState extends CoreGameState {
 }
 
 interface GameActions {
-  selectPosition: (position: Position) => void;
+  selectPosition: (position: Position, viaDrag?: boolean) => void;
+  /** Make the move from `from` to `to` directly (used by drag-and-drop). */
+  dragMove: (from: Position, to: Position) => void;
   undoMove: () => void;
   redoMove: () => void;
   newGame: (boardSize?: BoardSize, ruleSet?: RuleSet) => void;
@@ -80,6 +83,9 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   }));
   const lastMoveRef = useRef<Move | null>(null);
   const lastPromotedRef = useRef<Position | null>(null);
+  // Set when a move is made by dragging, so the glide animation is skipped
+  // (the player already carried the piece to its destination).
+  const suppressGlideRef = useRef(false);
   
   // Use state for selection to properly trigger re-renders
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
@@ -102,9 +108,14 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   // A suggested move highlighted by the Hint button (cleared on any change).
   const [hintMove, setHintMove] = useState<Move | null>(null);
 
+  // Keep the sound engine's mute flag in sync with the setting.
+  useEffect(() => {
+    setSoundMuted(!config.sound);
+  }, [config.sound]);
+
   // Update game instance when config changes
   useEffect(() => {
-    gameRef.current = new Game({ 
+    gameRef.current = new Game({
       ruleEngine: createRuleEngine(config.ruleSet, config.boardSize)
     });
     setSelectedPosition(null);
@@ -132,10 +143,19 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     const observer: Partial<GameObserver> = {
       onMove: (move: Move) => {
         lastMoveRef.current = move;
+        if (move.captures.length > 0) {
+          playCapture();
+          vibrate([12, 18, 12]);
+        } else {
+          playMove();
+          vibrate(10);
+        }
         cachedStateRef.current = null; // Clear cache
         callback();
       },
       onGameEnd: () => {
+        playWin();
+        vibrate([40, 30, 40, 30, 80]);
         cachedStateRef.current = null; // Clear cache
         callback();
       },
@@ -153,6 +173,8 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       },
       onPiecePromoted: (position: Position) => {
         lastPromotedRef.current = position;
+        playPromote();
+        vibrate([10, 40, 10]);
         cachedStateRef.current = null; // Clear cache
         callback();
       }
@@ -177,14 +199,19 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
   useEffect(() => {
     if (lastMoveRef.current) {
       const move = lastMoveRef.current;
+      const skipGlide = suppressGlideRef.current;
+      suppressGlideRef.current = false;
+
       // Key by the destination: that is where the moved piece now lives, so the
       // glide animation (origin → destination) is applied to the right square.
-      const key = move.to.hash();
-
-      setAnimationState(prev => ({
-        ...prev,
-        movingPieces: new Map([[key, { from: move.from, to: move.to }]])
-      }));
+      // Skipped for drag-drops, where the piece is already at its destination.
+      if (!skipGlide) {
+        const key = move.to.hash();
+        setAnimationState(prev => ({
+          ...prev,
+          movingPieces: new Map([[key, { from: move.from, to: move.to }]])
+        }));
+      }
 
       // Handle captures
       if (move.captures.length > 0) {
@@ -274,7 +301,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
     setThinking,
   ]);
 
-  const selectPosition = useCallback((position: Position): void => {
+  const selectPosition = useCallback((position: Position, viaDrag = false): void => {
     const game = gameRef.current;
     if (game.isGameOver()) return;
 
@@ -295,6 +322,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       const move = validMoves.find(m => m.to.equals(position));
       if (move) {
         try {
+          suppressGlideRef.current = viaDrag; // skip the glide for drag-drops
           game.makeMove(move);
           setSelectedPosition(null);
           setValidMoves([]);
@@ -309,6 +337,29 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
       }
     }
   }, [selectedPosition, validMoves, config.mode, config.aiSide]);
+
+  const dragMove = useCallback((from: Position, to: Position): void => {
+    const game = gameRef.current;
+    if (game.isGameOver() || isThinkingRef.current) return;
+    if (config.mode === 'ai' && game.getCurrentPlayer() === aiPlayerFor(config.aiSide)) return;
+
+    const piece = game.getBoard().getPiece(from);
+    if (!piece || piece.player !== game.getCurrentPlayer()) return;
+
+    const move = game.getPossibleMoves(from).find(m => m.to.equals(to));
+    if (!move) return;
+
+    try {
+      suppressGlideRef.current = true; // the player already carried it there
+      game.makeMove(move);
+      setSelectedPosition(null);
+      setValidMoves([]);
+      setErrorMessage(null);
+      setHintMove(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    }
+  }, [config.mode, config.aiSide]);
 
   const newGame = useCallback((boardSize?: BoardSize, ruleSet?: RuleSet): void => {
     const rules = ruleSet || config.ruleSet;
@@ -385,7 +436,7 @@ export function useConfigurableGame(): UseConfigurableGameReturn {
 
   return {
     gameState: combinedGameState,
-    actions: { selectPosition, undoMove, redoMove, newGame, showHint },
+    actions: { selectPosition, dragMove, undoMove, redoMove, newGame, showHint },
     canUndo: gameState.moveHistory.length > 0,
     canRedo: gameRef.current.canRedo(),
     isThinking,

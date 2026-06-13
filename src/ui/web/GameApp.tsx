@@ -6,10 +6,11 @@ import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
 import { GameConfig } from './components/GameConfig';
 import { HelpPanel } from './components/HelpPanel';
+import { Confetti } from './components/Confetti';
 import { THEME_COLORS, ANIMATION_DURATIONS, RuleSet, BoardSize } from './types/GameConfig';
 
 function GameAppContent(): React.JSX.Element {
-  const { config } = useGameConfig();
+  const { config, updateConfig } = useGameConfig();
   const { gameState, actions, canUndo, canRedo, isThinking, mustCapture, mandatorySources, hintMove } =
     useConfigurableGame();
   const [showConfig, setShowConfig] = useState(false);
@@ -39,8 +40,11 @@ function GameAppContent(): React.JSX.Element {
     root.style.setProperty('--glide-dur', `${ANIMATION_DURATIONS[config.animationSpeed]}ms`);
   }, [config.theme, config.animationSpeed]);
 
+  const celebrate = gameState.isGameOver && gameState.winner !== null;
+
   return (
     <div className={appClass}>
+      {celebrate && <Confetti key={gameState.moveHistory.length} />}
       <main className="game-container" role="main">
         <button
           className="settings-btn"
@@ -58,6 +62,16 @@ function GameAppContent(): React.JSX.Element {
           aria-label="How to Play"
         >
           ❓
+        </button>
+
+        <button
+          className="sound-btn"
+          data-testid="sound-button"
+          onClick={() => updateConfig({ sound: !config.sound })}
+          aria-label={config.sound ? 'Mute sound' : 'Unmute sound'}
+          aria-pressed={config.sound}
+        >
+          {config.sound ? '🔊' : '🔇'}
         </button>
 
         <h1>Checkers</h1>
@@ -87,6 +101,9 @@ function GameAppContent(): React.JSX.Element {
           validMoves={gameState.validMoves}
           animationState={gameState.animationState}
           onSquareClick={actions.selectPosition}
+          onDragMove={actions.dragMove}
+          currentPlayer={gameState.currentPlayer}
+          locked={isThinking}
           showMoveHints={config.showMoveHints}
           mandatorySources={mandatorySources}
           hintMove={hintMove}

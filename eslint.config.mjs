@@ -111,6 +111,15 @@ export default [
     }
   },
   {
+    // Browser-targeted source under the web UI also needs DOM globals.
+    files: ['src/ui/web/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.browser
+      }
+    }
+  },
+  {
     ignores: ['dist/', 'node_modules/', '*.config.js', 'vite.config.ts', '.early.coverage/']
   }
 ];
