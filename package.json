@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "build:web": "vite build",
-    "dev": "ts-node src/index.ts",
+    "dev": "vite",
     "dev:web": "vite",
     "test": "jest",
     "test:watch": "jest --watch",
