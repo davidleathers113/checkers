@@ -30,7 +30,7 @@ describe('Web Gameplay Integration Tests', () => {
     expect(screen.getByText('Move 1')).toBeInTheDocument();
 
     // Get game squares
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
 
@@ -93,7 +93,7 @@ describe('Web Gameplay Integration Tests', () => {
     });
 
     // Select a piece first to see default behavior (hints should be on by default)
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
     const redPieceSquare = squares[40];
@@ -156,7 +156,7 @@ describe('Web Gameplay Integration Tests', () => {
       expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
 
@@ -193,7 +193,7 @@ describe('Web Gameplay Integration Tests', () => {
     });
 
     // Count initial squares (should be 8x8 = 64)
-    let squares = screen.getAllByRole('generic').filter(el => 
+    let squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
     expect(squares).toHaveLength(64);
@@ -220,7 +220,7 @@ describe('Web Gameplay Integration Tests', () => {
 
     // Should now have 10x10 = 100 squares
     await waitFor(() => {
-      squares = screen.getAllByRole('generic').filter(el => 
+      squares = screen.getAllByRole('gridcell').filter(el => 
         el.className.includes('game-square')
       );
       expect(squares).toHaveLength(100);

@@ -31,11 +31,11 @@ test.describe('Game Configuration', () => {
       expect(redPieces).toBe(20);
       expect(blackPieces).toBe(20);
       
-      // Verify initial positions for 10x10 board (spot check)
-      await gamePage.expectPieceToBe({ row: 0, col: 1 }, 'red');
-      await gamePage.expectPieceToBe({ row: 3, col: 8 }, 'red');
-      await gamePage.expectPieceToBe({ row: 6, col: 1 }, 'black');
-      await gamePage.expectPieceToBe({ row: 9, col: 8 }, 'black');
+      // Verify initial positions for 10x10 board (Black top, Red bottom).
+      await gamePage.expectPieceToBe({ row: 0, col: 1 }, 'black');
+      await gamePage.expectPieceToBe({ row: 3, col: 8 }, 'black');
+      await gamePage.expectPieceToBe({ row: 6, col: 1 }, 'red');
+      await gamePage.expectPieceToBe({ row: 9, col: 8 }, 'red');
     });
 
     test('Board size change requires confirmation', async () => {
@@ -52,18 +52,13 @@ test.describe('Game Configuration', () => {
       await expect(gamePage.confirmDialog).toBeVisible();
       await expect(gamePage.confirmDialog).toContainText('start a new game');
       
-      // Cancel the change
+      // Cancel the change — the settings panel stays open.
       await gamePage.cancelConfigurationChange();
-      
-      // Should still be 8x8
       await gamePage.expectBoardSize(8);
-      
-      // Try again and confirm
-      await gamePage.openSettings();
+
+      // Try again from the still-open panel and confirm.
       await gamePage.selectBoardSize('10');
       await gamePage.confirmConfigurationChange();
-      
-      // Now should be 10x10
       await gamePage.expectBoardSize(10);
     });
 
@@ -73,12 +68,13 @@ test.describe('Game Configuration', () => {
       await gamePage.selectBoardSize('10');
       await gamePage.confirmConfigurationChange();
       await gamePage.expectBoardSize(10);
-      
-      // Switch back to 8x8
+
+      // In International the 8x8 radio is disabled, so switch back via the rule
+      // set (Standard), which returns the board to 8x8.
       await gamePage.openSettings();
-      await gamePage.selectBoardSize('8');
+      await gamePage.page.locator('input[value="standard"]').click();
       await gamePage.confirmConfigurationChange();
-      
+
       // Verify 8x8 board and piece count
       await gamePage.expectBoardSize(8);
       
@@ -91,19 +87,17 @@ test.describe('Game Configuration', () => {
   });
 
   test.describe('Move Hints Configuration', () => {
-    test('Enable move hints shows valid moves', async () => {
-      // Open settings and enable move hints
+    test('Move hints show valid moves (on by default)', async () => {
       await gamePage.openSettings();
-      await gamePage.toggleMoveHints(); // Enable if not already enabled
+      await expect(gamePage.showMoveHintsCheckbox).toBeChecked();
       await gamePage.configDoneButton.click();
-      
-      // Click on a piece to select it
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
-      
-      // Valid move squares should be highlighted
-      await gamePage.expectSquareToShowValidMove({ row: 3, col: 0 });
-      await gamePage.expectSquareToShowValidMove({ row: 3, col: 2 });
+
+      // Select a Red piece with two forward options.
+      await gamePage.clickSquare(5, 2);
+      await gamePage.expectSquareToBeSelected({ row: 5, col: 2 });
+
+      await gamePage.expectSquareToShowValidMove({ row: 4, col: 1 });
+      await gamePage.expectSquareToShowValidMove({ row: 4, col: 3 });
     });
 
     test('Disable move hints hides valid move indicators', async () => {
@@ -115,12 +109,11 @@ test.describe('Game Configuration', () => {
       await gamePage.toggleMoveHints();
       await expect(gamePage.showMoveHintsCheckbox).not.toBeChecked();
       await gamePage.configDoneButton.click();
-      
-      // Click on a piece to select it
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
-      
-      // Valid move squares should NOT be highlighted
+
+      // Select a Red piece; with hints off, no targets are highlighted.
+      await gamePage.clickSquare(5, 2);
+      await gamePage.expectSquareToBeSelected({ row: 5, col: 2 });
+
       const validMoveSquares = gamePage.page.locator('.game-square.valid-move');
       await expect(validMoveSquares).toHaveCount(0);
     });
@@ -148,42 +141,26 @@ test.describe('Game Configuration', () => {
 
   test.describe('Configuration Reset', () => {
     test('Reset to defaults restores original settings', async () => {
-      // Change multiple settings
+      // Change settings: 10x10 board and hints off.
       await gamePage.openSettings();
-      
-      // Change board size to 10x10
       await gamePage.selectBoardSize('10');
       await gamePage.confirmConfigurationChange();
-      
-      // Disable move hints
       await gamePage.openSettings();
-      await gamePage.toggleMoveHints(); // Disable
+      await gamePage.toggleMoveHints(); // disable
       await gamePage.configDoneButton.click();
-      
-      // Verify changes took effect
       await gamePage.expectBoardSize(10);
-      await gamePage.clickSquare(2, 1);
-      const validMoveSquares = gamePage.page.locator('.game-square.valid-move');
-      await expect(validMoveSquares).toHaveCount(0);
-      
-      // Reset to defaults
+
+      // Reset applies immediately (no confirmation dialog).
       await gamePage.openSettings();
       await gamePage.resetConfiguration();
-      
-      // Should show confirmation for board size change back to 8x8
-      await gamePage.confirmConfigurationChange();
-      
-      // Verify defaults are restored
-      await gamePage.expectBoardSize(8);
-      
-      // Check that move hints are enabled again
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToShowValidMove({ row: 3, col: 0 });
-      
-      // Verify in settings
-      await gamePage.openSettings();
       await expect(gamePage.boardSize8Radio).toBeChecked();
       await expect(gamePage.showMoveHintsCheckbox).toBeChecked();
+      await gamePage.configDoneButton.click();
+
+      // Board is back to 8x8 and hints are on again.
+      await gamePage.expectBoardSize(8);
+      await gamePage.clickSquare(5, 2);
+      await gamePage.expectSquareToShowValidMove({ row: 4, col: 1 });
     });
   });
 

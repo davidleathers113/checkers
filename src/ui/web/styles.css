@@ -233,6 +233,20 @@ body::before {
   50% { opacity: 1; }
 }
 
+/* Keyboard cursor: a crisp ring shown only while the board itself has keyboard
+   focus, so mouse/touch players never see it. Drawn with `outline` (not a
+   pseudo-element) so it never collides with the ::before/::after rings used by
+   selection, move hints, must-move, and capture bursts on the same square. */
+.game-board:focus-visible {
+  outline: none;
+}
+.game-board:focus-visible .game-square.kb-cursor {
+  outline: 3px dashed var(--gold-bright);
+  outline-offset: -5px;
+  border-radius: 10px;
+  z-index: 5;
+}
+
 /* ── Move-target affordances (slide / capture / hop) ───────────────────────
    .valid-move is the base hook; GameBoard adds a modifier per move type. */
 .game-square.valid-move {
@@ -628,6 +642,7 @@ body::before {
 .btn {
   font-family: var(--font-body);
   padding: 12px 22px;
+  min-height: 48px;
   border: none;
   border-radius: 13px;
   cursor: pointer;
@@ -694,9 +709,9 @@ body::before {
 .help-btn,
 .sound-btn {
   position: absolute;
-  top: 20px;
-  width: 44px;
-  height: 44px;
+  top: 18px;
+  width: 46px;
+  height: 46px;
   border-radius: 13px;
   background: linear-gradient(180deg, #fff, var(--surface-2));
   border: 1px solid var(--surface-line);

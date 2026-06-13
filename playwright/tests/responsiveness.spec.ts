@@ -87,17 +87,16 @@ test.describe('Responsiveness Tests', () => {
       await page.setViewportSize(VIEWPORT_SIZES.tablet);
       await gamePage.goto();
       
-      // Test piece selection with touch
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
-      
+      // Test piece selection with touch (Red, bottom of the board)
+      await gamePage.clickSquare(5, 0);
+      await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
+
       // Test piece movement
-      await gamePage.clickSquare(3, 0);
-      await gamePage.waitForAnimations();
-      
+      await gamePage.clickSquare(4, 1);
+
       // Verify the move worked
-      await gamePage.expectPieceToBe({ row: 3, col: 0 }, 'red');
-      await gamePage.expectSquareToBeEmpty({ row: 2, col: 1 });
+      await gamePage.expectPieceToBe({ row: 4, col: 1 }, 'red');
+      await gamePage.expectSquareToBeEmpty({ row: 5, col: 0 });
     });
 
     test('Settings panel adapts to tablet viewport', async ({ page }) => {
@@ -146,16 +145,11 @@ test.describe('Responsiveness Tests', () => {
       await page.setViewportSize(VIEWPORT_SIZES.mobile);
       await gamePage.goto();
       
-      // Test piece selection on mobile
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
-      
-      // Test piece movement (may use click-to-move instead of drag)
-      await gamePage.clickSquare(3, 0);
-      await gamePage.waitForAnimations();
-      
+      // Drag a Red piece on mobile (pointer drag-and-drop)
+      await gamePage.dragPiece({ row: 5, col: 0 }, { row: 4, col: 1 });
+
       // Verify the move worked
-      await gamePage.expectPieceToBe({ row: 3, col: 0 }, 'red');
+      await gamePage.expectPieceToBe({ row: 4, col: 1 }, 'red');
       await gamePage.expectCurrentPlayer('Black');
     });
 
@@ -206,16 +200,16 @@ test.describe('Responsiveness Tests', () => {
       await gamePage.goto();
       
       // Check that game squares are large enough for touch interaction
-      const square = gamePage.getSquare(2, 1);
+      const square = gamePage.getSquare(5, 0);
       const squareBox = await square.boundingBox();
-      
+
       expect(squareBox).toBeTruthy();
       expect(squareBox!.width).toBeGreaterThanOrEqual(30); // Reasonable minimum for game pieces
       expect(squareBox!.height).toBeGreaterThanOrEqual(30);
-      
+
       // Test actual interaction
       await square.click();
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
+      await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
     });
   });
 
@@ -236,8 +230,8 @@ test.describe('Responsiveness Tests', () => {
       expect(boardBox!.height).toBeLessThanOrEqual(375); // Fit within viewport height
       
       // Test interaction still works
-      await gamePage.clickSquare(2, 1);
-      await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
+      await gamePage.clickSquare(5, 0);
+      await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
     });
   });
 
@@ -278,21 +272,17 @@ test.describe('Responsiveness Tests', () => {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await gamePage.goto();
         
-        // Test basic game functionality
-        await gamePage.clickSquare(2, 1);
-        await gamePage.expectSquareToBeSelected({ row: 2, col: 1 });
-        
-        await gamePage.clickSquare(3, 0);
-        await gamePage.waitForAnimations();
-        
-        await gamePage.expectPieceToBe({ row: 3, col: 0 }, 'red');
+        // Test basic game functionality (Red moves, then undo)
+        await gamePage.clickSquare(5, 0);
+        await gamePage.expectSquareToBeSelected({ row: 5, col: 0 });
+
+        await gamePage.clickSquare(4, 1);
+        await gamePage.expectPieceToBe({ row: 4, col: 1 }, 'red');
         await gamePage.expectCurrentPlayer('Black');
-        
+
         // Test undo
         await gamePage.undoMove();
-        await gamePage.waitForAnimations();
-        
-        await gamePage.expectPieceToBe({ row: 2, col: 1 }, 'red');
+        await gamePage.expectPieceToBe({ row: 5, col: 0 }, 'red');
         await gamePage.expectCurrentPlayer('Red');
       }
     });

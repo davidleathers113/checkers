@@ -6,10 +6,15 @@ This directory contains comprehensive end-to-end (E2E) tests for the Extensible 
 
 The test suite validates the application from a user's perspective, ensuring:
 - ✅ Functional correctness across user flows
-- ✅ Cross-browser compatibility (Chromium, Firefox, WebKit)
+- ✅ Cross-browser compatibility (Chromium + Mobile Chrome by default; Firefox,
+  WebKit, and Mobile Safari behind `E2E_ALL_BROWSERS=1`)
 - ✅ Responsive design on desktop, tablet, and mobile
-- ✅ Visual regression prevention
+- ✅ Visual regression prevention (chromium baselines)
 - ✅ Accessibility compliance
+
+> **Determinism:** every run builds the app and serves the **production preview**
+> on a fixed port (`reuseExistingServer: false`), so a stray Vite dev server can
+> never serve stale code or CSS into a run.
 
 ## Directory Structure
 
@@ -60,6 +65,9 @@ npm run test:e2e:debug
 npm run test:e2e:smoke           # Just smoke tests
 npm run test:e2e:visual          # Visual regression tests
 npm run test:e2e:accessibility   # Accessibility tests
+
+# The CI gate: chromium only, excluding the (macOS-baselined) visual suite
+npm run test:e2e:ci
 
 # View test report
 npm run test:e2e:report
@@ -119,11 +127,12 @@ WCAG compliance verification:
 The tests use the Page Object Model (POM) pattern for maintainability:
 
 ```typescript
-// Example usage
+// Example usage. Red is at the bottom (rows 5-7) and moves first; Black is at
+// the top (rows 0-2). A move is a tap on the source square then the target.
 const gamePage = new GamePage(page);
 await gamePage.goto();
 await gamePage.startNewGame();
-await gamePage.movePiece({ row: 2, col: 1 }, { row: 3, col: 0 });
+await gamePage.movePiece({ row: 5, col: 0 }, { row: 4, col: 1 });
 await gamePage.expectCurrentPlayer('Black');
 ```
 
@@ -134,25 +143,28 @@ Key methods:
 
 ## CI/CD Integration
 
-### GitHub Actions Example
-```yaml
-- name: Run Playwright tests
-  run: npm run test:e2e
+CI is defined in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml):
 
-- name: Upload test results
-  uses: actions/upload-artifact@v3
-  if: always()
-  with:
-    name: playwright-report
-    path: playwright-report/
-```
+- **On every push to `main` and every pull request:**
+  - `quality` job — `lint`, `typecheck`, `npm test` (jsdom unit tests), and both
+    builds (`build`, `build:web`).
+  - `e2e` job — `npm run test:e2e:ci` (chromium, functional + accessibility).
+    The `playwright-report/` is uploaded as an artifact.
+- **Nightly (07:00 UTC):** the `e2e-all-browsers` job runs the full matrix with
+  `E2E_ALL_BROWSERS=1` (Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari).
+
+The **visual-regression suite is intentionally excluded from CI**. Its baselines
+are pixel-for-pixel captures rendered on macOS (`*-chromium-darwin.png`) and a
+Linux CI runner renders text and anti-aliasing differently, so they would never
+match. Run and update visual baselines locally on macOS (see below).
 
 ## Configuration
 
 ### Browser Matrix
-Tests run across multiple browsers and viewports:
-- **Desktop**: Chrome, Firefox, Safari
-- **Mobile**: Chrome on Pixel 5, Safari on iPhone 12
+By default tests run on two projects: **Chromium** (Desktop Chrome) and
+**Mobile Chrome** (Pixel 5). Set `E2E_ALL_BROWSERS=1` to add **Firefox**,
+**WebKit** (Desktop Safari), and **Mobile Safari** (iPhone 12) for the nightly
+cross-browser run.
 
 ### Test Data
 Centralized test data in `testData.ts`:
@@ -176,14 +188,20 @@ npm run test:e2e:ui
 ```
 
 ### Screenshot Comparison
-Visual tests automatically generate screenshots on first run. Update baselines:
-```bash
-# Update all visual baselines
-npx playwright test visual --update-snapshots
+Visual baselines are captured on a single canonical project (**chromium**) and
+committed under `tests/visual.spec.ts-snapshots/`. The config freezes CSS
+animations/transitions to their end state, hides the caret, and allows a small
+`maxDiffPixelRatio` (0.01) so anti-aliasing jitter does not cause false failures.
 
-# Update specific test screenshots
-npx playwright test "theme appearance" --update-snapshots
+Regenerate baselines locally on macOS after an intentional UI change:
+```bash
+# Update all visual baselines (chromium project)
+npm run test:e2e:visual -- --project=chromium --update-snapshots
+
+# Then verify they are byte-stable on a clean re-run
+npm run test:e2e:visual -- --project=chromium
 ```
+Commit the regenerated `*-chromium-darwin.png` files alongside the UI change.
 
 ## Best Practices
 

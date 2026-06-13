@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { RuleSet } from '../types/GameConfig';
+import { useFocusTrap } from '../useFocusTrap';
 
 interface HelpPanelProps {
   ruleSet: RuleSet;
@@ -31,10 +32,12 @@ const VARIANT_NOTES: Record<RuleSet, { title: string; note: string }> = {
  */
 export function HelpPanel({ ruleSet, onClose }: HelpPanelProps): React.JSX.Element {
   const variant = VARIANT_NOTES[ruleSet];
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, onClose);
 
   return (
     <div className="help-overlay" data-testid="help-panel">
-      <div className="help-panel" role="dialog" aria-modal="true" aria-label="How to Play">
+      <div className="help-panel" role="dialog" aria-modal="true" aria-label="How to Play" ref={panelRef}>
         <div className="help-header">
           <h2>How to Play</h2>
           <button className="close-btn" data-testid="help-close-button" onClick={onClose} aria-label="Close help">×</button>

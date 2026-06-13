@@ -39,7 +39,7 @@ describe('GameBoard Component', () => {
       />
     );
 
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
     expect(squares).toHaveLength(64);

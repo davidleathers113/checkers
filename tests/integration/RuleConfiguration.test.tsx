@@ -65,7 +65,7 @@ describe('Rule Configuration Integration Tests', () => {
 
     // Should create 10x10 board for International Draughts
     await waitFor(() => {
-      const squares = screen.getAllByRole('generic').filter(el => 
+      const squares = screen.getAllByRole('gridcell').filter(el => 
         el.className.includes('game-square')
       );
       expect(squares).toHaveLength(100); // 10x10 board
@@ -91,7 +91,7 @@ describe('Rule Configuration Integration Tests', () => {
 
     // Should be back to 8x8
     await waitFor(() => {
-      const squares = screen.getAllByRole('generic').filter(el => 
+      const squares = screen.getAllByRole('gridcell').filter(el => 
         el.className.includes('game-square')
       );
       expect(squares).toHaveLength(64); // 8x8 board
@@ -270,7 +270,7 @@ describe('Rule Configuration Integration Tests', () => {
     });
 
     // Select a piece to verify no hints are shown
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
     

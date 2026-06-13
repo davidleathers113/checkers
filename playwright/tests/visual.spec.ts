@@ -4,7 +4,11 @@ import { GamePage } from '../support/gamePage';
 test.describe('Visual Regression Tests', () => {
   let gamePage: GamePage;
 
-  test.beforeEach(async ({ page }) => {
+  // Baselines are captured on a single canonical browser (chromium) to keep the
+  // snapshot set small and stable; several tests also override the viewport, so
+  // running them under the Mobile Chrome project would only add redundant noise.
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'Visual baselines are chromium-only');
     gamePage = new GamePage(page);
     await gamePage.goto();
   });
@@ -67,19 +71,21 @@ test.describe('Visual Regression Tests', () => {
     });
 
     test('Mid-game board state', async () => {
-      // Make several moves to create a mid-game state
+      // Play a legal, capture-free opening (Red moves first; Red is bottom rows
+      // and moves up, Black is top rows and moves down). The two sides develop
+      // on opposite flanks so no mandatory jump is created mid-sequence.
+      await gamePage.movePiece({ row: 5, col: 6 }, { row: 4, col: 5 });
+      await gamePage.waitForAnimations();
+
       await gamePage.movePiece({ row: 2, col: 1 }, { row: 3, col: 0 });
       await gamePage.waitForAnimations();
-      
-      await gamePage.movePiece({ row: 5, col: 0 }, { row: 4, col: 1 });
+
+      await gamePage.movePiece({ row: 5, col: 4 }, { row: 4, col: 3 });
       await gamePage.waitForAnimations();
-      
-      await gamePage.movePiece({ row: 2, col: 3 }, { row: 3, col: 2 });
+
+      await gamePage.movePiece({ row: 2, col: 3 }, { row: 3, col: 4 });
       await gamePage.waitForAnimations();
-      
-      await gamePage.movePiece({ row: 5, col: 2 }, { row: 4, col: 3 });
-      await gamePage.waitForAnimations();
-      
+
       // Take screenshot of mid-game state
       await expect(gamePage.board).toHaveScreenshot('mid-game-state.png');
       await expect(gamePage.page).toHaveScreenshot('mid-game-full-interface.png');
@@ -104,12 +110,13 @@ test.describe('Visual Regression Tests', () => {
     });
 
     test('Error message display', async () => {
-      // Try to trigger an error message by making an invalid move
-      // Note: This depends on how the application handles invalid moves
-      await gamePage.clickSquare(2, 1); // Select piece
-      
+      // Try to trigger an error message by making an invalid move.
+      // Red moves first, so select a Red piece (bottom rows) then click a
+      // non-reachable square.
+      await gamePage.clickSquare(5, 0); // Select Red piece
+
       // Try to move to an invalid square (this might show an error or simply not work)
-      await gamePage.clickSquare(1, 1); // Invalid move
+      await gamePage.clickSquare(3, 3); // Invalid (too far) move
       
       // If an error message appears, capture it
       if (await gamePage.errorMessage.isVisible()) {
@@ -201,9 +208,9 @@ test.describe('Visual Regression Tests', () => {
       await slowAnimation.click();
       await gamePage.configDoneButton.click();
       
-      // Start a move
-      await gamePage.clickSquare(2, 1);
-      await gamePage.clickSquare(3, 0);
+      // Start a move (Red moves first; Red develops from the bottom rows upward)
+      await gamePage.clickSquare(5, 0);
+      await gamePage.clickSquare(4, 1);
       
       // Take screenshot during animation (this might be timing-dependent)
       await gamePage.page.waitForTimeout(100); // Brief delay to catch animation
@@ -274,9 +281,9 @@ test.describe('Visual Regression Tests', () => {
       await gamePage.openSettings();
       await expect(gamePage.configContainer).toHaveScreenshot(`${browserName}-settings-panel.png`);
       
-      // Test with piece selected
+      // Test with piece selected (Red moves first, so select a Red piece)
       await gamePage.configDoneButton.click();
-      await gamePage.clickSquare(2, 1);
+      await gamePage.clickSquare(5, 0);
       await expect(gamePage.board).toHaveScreenshot(`${browserName}-piece-selected.png`);
     });
   });
