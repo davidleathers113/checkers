@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useGameConfig } from '../contexts/GameConfigContext';
 import { GameConfig as GameConfigType, RuleSet, BoardSize } from '../types/GameConfig';
+import { useFocusTrap } from '../useFocusTrap';
 
 interface GameConfigProps {
   onClose: () => void;
@@ -11,6 +12,8 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
   const { config, updateConfig, resetConfig } = useGameConfig();
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Partial<GameConfigType>>({});
+  const panelRef = useRef<HTMLDivElement>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
 
   const handleBoardSizeChange = (size: BoardSize): void => {
     if (size !== config.boardSize) {
@@ -47,9 +50,21 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
     setPendingChanges({});
   };
 
+  // While the confirm dialog is open it owns focus; the panel trap stands down
+  // so the two don't fight over Tab.
+  useFocusTrap(panelRef, onClose, !showConfirm);
+  useFocusTrap(confirmRef, cancelChanges, showConfirm);
+
   return (
-    <div className="config-overlay" data-testid="game-config">
-      <div className="config-panel" role="dialog" aria-modal="true" aria-label="Game Settings">
+    <div className="config-overlay">
+      <div
+        className="config-panel"
+        data-testid="game-config"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Game Settings"
+        ref={panelRef}
+      >
         <div className="config-header">
           <h2>Game Settings</h2>
           <button className="close-btn" data-testid="config-close-button" onClick={onClose}>×</button>
@@ -297,7 +312,7 @@ export function GameConfig({ onClose, onNewGame }: GameConfigProps): React.JSX.E
         </div>
 
         {showConfirm && (
-          <div className="confirm-dialog" data-testid="confirm-dialog">
+          <div className="confirm-dialog" data-testid="confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirm new game" ref={confirmRef}>
             <div className="confirm-content">
               <p>Changing the board size or rules will start a new game. Continue?</p>
               <div className="confirm-actions">

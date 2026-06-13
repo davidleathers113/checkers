@@ -20,6 +20,7 @@ interface GameSquareProps {
   isCaptureBurst?: boolean;
   isDragSource?: boolean;
   isDropHover?: boolean;
+  isCursor?: boolean;
   moveDelta?: { dx: number; dy: number };
   onClick: () => void;
   onPointerDown?: (e: React.PointerEvent) => void;
@@ -40,6 +41,7 @@ export function GameSquare({
   isCaptureBurst = false,
   isDragSource = false,
   isDropHover = false,
+  isCursor = false,
   moveDelta,
   onClick,
   onPointerDown
@@ -54,11 +56,13 @@ export function GameSquare({
   if (isHintTo) className += ' hint-to';
   if (isCaptureBurst) className += ' capture-burst';
   if (isDropHover) className += ' drop-hover';
+  if (isCursor) className += ' kb-cursor';
 
   return (
     <div
       className={className}
       data-testid={`game-square-${position.row}-${position.col}`}
+      role="gridcell"
       onClick={onClick}
       onPointerDown={onPointerDown}
     >

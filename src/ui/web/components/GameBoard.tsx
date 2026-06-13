@@ -74,6 +74,12 @@ export function GameBoard({
 }: GameBoardProps): React.JSX.Element {
   const [dragVisual, setDragVisual] = useState<DragVisual | null>(null);
   const [hoverTarget, setHoverTarget] = useState<Position | null>(null);
+  // Keyboard cursor: arrow keys move it, Enter/Space acts on it.
+  const [cursor, setCursor] = useState<Position>(new Position(0, 1));
+  const safeCursor =
+    cursor.row < board.size && cursor.col < board.size ? cursor : new Position(0, 1);
+
+  const clamp = (n: number): number => Math.max(0, Math.min(board.size - 1, n));
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const justDraggedRef = useRef(false);
@@ -176,8 +182,36 @@ export function GameBoard({
     onSquareClick(position);
   };
 
-  const squares = [];
+  const handleBoardKeyDown = (e: React.KeyboardEvent): void => {
+    switch (e.key) {
+    case 'ArrowUp':
+      setCursor(new Position(clamp(safeCursor.row - 1), safeCursor.col));
+      break;
+    case 'ArrowDown':
+      setCursor(new Position(clamp(safeCursor.row + 1), safeCursor.col));
+      break;
+    case 'ArrowLeft':
+      setCursor(new Position(safeCursor.row, clamp(safeCursor.col - 1)));
+      break;
+    case 'ArrowRight':
+      setCursor(new Position(safeCursor.row, clamp(safeCursor.col + 1)));
+      break;
+    case 'Enter':
+    case ' ':
+      onSquareClick(safeCursor);
+      break;
+    default:
+      return;
+    }
+    e.preventDefault();
+  };
+
+  // Squares are grouped into ARIA rows so the board satisfies the grid pattern
+  // (grid > row > gridcell). The row wrappers use `display: contents`, so they
+  // add no layout box and the squares remain direct grid items of .game-board.
+  const rows = [];
   for (let row = 0; row < board.size; row++) {
+    const rowSquares = [];
     for (let col = 0; col < board.size; col++) {
       const position = new Position(row, col);
       const piece = board.getPiece(position);
@@ -194,7 +228,7 @@ export function GameBoard({
         ? { dx: movingEntry.from.col - movingEntry.to.col, dy: movingEntry.from.row - movingEntry.to.row }
         : undefined;
 
-      squares.push(
+      rowSquares.push(
         <GameSquare
           key={`${row}-${col}`}
           position={position}
@@ -212,11 +246,17 @@ export function GameBoard({
           isHintTo={hintMove?.to.equals(position) ?? false}
           isDragSource={dragVisual !== null && (dragRef.current?.from.equals(position) ?? false)}
           isDropHover={hoverTarget?.equals(position) ?? false}
+          isCursor={safeCursor.equals(position)}
           onClick={() => handleClick(position)}
           onPointerDown={(e) => handlePointerDown(position, piece, e)}
         />
       );
     }
+    rows.push(
+      <div key={`row-${row}`} role="row" style={{ display: 'contents' }}>
+        {rowSquares}
+      </div>
+    );
   }
 
   const boardStyle = {
@@ -226,8 +266,16 @@ export function GameBoard({
   } as React.CSSProperties;
 
   return (
-    <div className={`game-board${dragVisual ? ' dragging' : ''}`} data-testid="game-board" style={boardStyle}>
-      {squares}
+    <div
+      className={`game-board${dragVisual ? ' dragging' : ''}`}
+      data-testid="game-board"
+      style={boardStyle}
+      role="grid"
+      aria-label="Checkers board. Use the arrow keys to move the cursor and Enter to select or move."
+      tabIndex={0}
+      onKeyDown={handleBoardKeyDown}
+    >
+      {rows}
       {dragVisual && (
         <div
           ref={ghostRef}

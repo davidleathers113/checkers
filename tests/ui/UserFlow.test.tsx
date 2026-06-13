@@ -28,7 +28,7 @@ describe('User Flow Integration Tests', () => {
     });
 
     // Get all squares
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
 
@@ -67,7 +67,7 @@ describe('User Flow Integration Tests', () => {
     });
 
     // Make a move first
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
 
@@ -99,7 +99,7 @@ describe('User Flow Integration Tests', () => {
     });
 
     // Make a move
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
     fireEvent.click(squares[40]!);
@@ -179,7 +179,7 @@ describe('User Flow Integration Tests', () => {
       expect(screen.getByText('Checkers')).toBeInTheDocument();
     });
 
-    const squares = screen.getAllByRole('generic').filter(el => 
+    const squares = screen.getAllByRole('gridcell').filter(el => 
       el.className.includes('game-square')
     );
 
