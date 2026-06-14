@@ -150,6 +150,28 @@ describe('Game', () => {
       expect(game.getPossibleMoves(new Position(4, 4))).toHaveLength(0); // empty (current player RED)
       expect(game.getPossibleMoves(new Position(0, 1))).toHaveLength(0); // BLACK piece, not RED's turn
     });
+
+    it('getPossibleMoves respects mandatory captures (no slides for a quiet piece)', () => {
+      // RED (5,2) is forced to capture BLACK (4,3); RED (5,6) can only slide.
+      class ForcedCaptureRules extends StandardRules {
+        override getInitialBoard(): Board {
+          return new Board(8)
+            .setPiece(new Position(5, 2), new RegularPiece(Player.RED))
+            .setPiece(new Position(4, 3), new RegularPiece(Player.BLACK))
+            .setPiece(new Position(5, 6), new RegularPiece(Player.RED));
+        }
+      }
+      const game = new Game({ ruleEngine: new ForcedCaptureRules() });
+
+      // The quiet piece offers nothing while a capture is mandatory.
+      expect(game.getPossibleMoves(new Position(5, 6))).toHaveLength(0);
+
+      // The capturing piece offers exactly its mandatory jump.
+      const captures = game.getPossibleMoves(new Position(5, 2));
+      expect(captures).toHaveLength(1);
+      expect(captures[0]!.to.equals(new Position(3, 4))).toBe(true);
+      expect(captures[0]!.isCapture()).toBe(true);
+    });
   });
 
   describe('promotion via an unflagged move', () => {

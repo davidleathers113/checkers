@@ -185,11 +185,16 @@ export class Game {
    */
   getPossibleMoves(position: Position): Move[] {
     if (this.isGameOver()) return [];
-    
+
     const piece = this.board.getPiece(position);
     if (!piece || piece.player !== this.currentPlayer) return [];
 
-    return this.ruleEngine.getPossibleMoves(this.board, position);
+    // Derive this piece's legal moves from the authoritative full-board move set
+    // so the per-position list always respects global rules — most importantly
+    // mandatory (and maximum) captures: while the player is forced to jump, a
+    // quiet piece correctly offers nothing instead of slides that makeMove would
+    // then reject.
+    return this.getAllPossibleMoves().filter(move => move.from.equals(position));
   }
 
   /**
