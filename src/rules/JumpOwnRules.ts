@@ -42,17 +42,25 @@ interface JumpStep {
  * may stop after any jump.
  *
  * Opponent captures keep their normal behaviour: they remove the captured piece
- * and remain mandatory. Hops are only available when you are not already forced
- * to capture an opponent, so every generated jump sequence begins with a hop.
+ * and remain mandatory. Captures take priority over a *pure* hop or slide — when
+ * a capture is available your move must BEGIN with a capture (you cannot dodge a
+ * forced jump by hopping first) and must still take the maximum number of
+ * opponents — but once you have captured you may keep going with hops and/or
+ * further captures. So both orders are legal in a single turn: hop-then-capture
+ * (when no direct capture forces your hand) and capture-then-hop.
  */
 export class JumpOwnRules extends StandardRules {
   override getPossibleMoves(board: Board, position: Position): Move[] {
     const piece = board.getPiece(position);
     if (!piece) return [];
 
-    // Mandatory opponent captures take priority — no hops while forced to jump.
-    if (this.getMandatoryMoves(board, piece.player).length > 0) {
-      return super.getPossibleMoves(board, position);
+    const mandatory = this.getMandatoryMoves(board, piece.player);
+    if (mandatory.length > 0) {
+      // Forced to capture: only capture-initiated, maximum-capture sequences are
+      // legal (hops may extend them). A piece with no capture of its own offers
+      // nothing — another piece must take the jump.
+      if (piece.getCaptureMoves(position, board).length === 0) return [];
+      return this.forcedCaptureSequences(board, position, piece, mandatory[0]!.getCaptureCount());
     }
 
     // No forced capture: regular slides, plus every hop / hop-then-capture
@@ -60,6 +68,25 @@ export class JumpOwnRules extends StandardRules {
     const base = super.getPossibleMoves(board, position);
     const jumps = this.getJumpSequences(board, position, piece);
     return this.dedupeMoves([...base, ...jumps]);
+  }
+
+  override getAllPossibleMoves(board: Board, player: Player): Move[] {
+    const mandatory = this.getMandatoryMoves(board, player);
+    if (mandatory.length === 0) {
+      // Not forced: the inherited logic delegates to getPossibleMoves per piece
+      // (slides + hop sequences), which is exactly what we want.
+      return super.getAllPossibleMoves(board, player);
+    }
+
+    // Forced to capture: every capture-initiated, maximum-capture sequence
+    // (optionally extended with hops) from any piece that can start a capture.
+    const max = mandatory[0]!.getCaptureCount();
+    const moves: Move[] = [];
+    for (const { position, piece } of board.getPlayerPieces(player)) {
+      if (piece.getCaptureMoves(position, board).length === 0) continue;
+      moves.push(...this.forcedCaptureSequences(board, position, piece, max));
+    }
+    return this.dedupeMoves(moves);
   }
 
   override validateMove(board: Board, move: Move): boolean {
@@ -71,12 +98,26 @@ export class JumpOwnRules extends StandardRules {
     const piece = board.getPiece(move.from);
     if (!piece) return false;
 
-    // A hop (or hop-then-capture) is only legal when not forced to capture.
-    if (this.getMandatoryMoves(board, piece.player).length > 0) {
-      return false;
-    }
+    // Otherwise the move is only legal if it is one of the jump sequences this
+    // position offers (which already encode the mandatory/maximum-capture rules).
+    return this.getPossibleMoves(board, move.from).some(seq => seq.equals(move));
+  }
 
-    return this.getJumpSequences(board, move.from, piece).some(seq => seq.equals(move));
+  /**
+   * The legal jump sequences for `piece` when the player is forced to capture:
+   * those that begin with a capture and take exactly `maxCaptures` opponents
+   * (the player-wide maximum). Hops may be interleaved/appended freely, but they
+   * never change the capture count, so a forced turn always captures the max.
+   */
+  private forcedCaptureSequences(
+    board: Board,
+    position: Position,
+    piece: Piece,
+    maxCaptures: number
+  ): Move[] {
+    return this.getJumpSequences(board, position, piece).filter(
+      seq => seq.steps[0]?.captured !== undefined && seq.getCaptureCount() === maxCaptures
+    );
   }
 
   /**
