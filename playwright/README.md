@@ -49,8 +49,11 @@ npx playwright install
 ### Available Commands
 
 ```bash
-# Run all E2E tests
+# Run all functional/a11y/PWA E2E tests (excludes the serial visual suite)
 npm run test:e2e
+
+# Run the visual regression suite (serial; see "Screenshot Comparison" below)
+npm run test:e2e:visual
 
 # Run with interactive UI mode
 npm run test:e2e:ui
@@ -189,17 +192,29 @@ npm run test:e2e:ui
 
 ### Screenshot Comparison
 Visual baselines are captured on a single canonical project (**chromium**) and
-committed under `tests/visual.spec.ts-snapshots/`. The config freezes CSS
-animations/transitions to their end state, hides the caret, and allows a small
-`maxDiffPixelRatio` (0.01) so anti-aliasing jitter does not cause false failures.
+committed under `tests/visual.spec.ts-snapshots/`. For determinism the suite:
+
+- **runs serially** (`--workers=1`, baked into `test:e2e:visual`). The app is a
+  vertically-centred layout, so under parallel CPU load the page's exact pixel
+  position jitters by a pixel or two and re-centres the whole frame — a large
+  full-page diff. Serial execution removes that contention. (Because of this,
+  `npm run test:e2e` excludes the visual suite, just like CI; always run it via
+  `test:e2e:visual`.)
+- **blocks Google Fonts** so the UI renders in deterministic system fonts. A
+  late web-font swap would otherwise change text metrics and re-centre the page.
+  The shipped app still uses its real web fonts — only these fixtures don't.
+- **parks the mouse** at the corner before each capture, so no element is left
+  in a `:hover` state.
+- freezes CSS animations/transitions to their end state, hides the caret, and
+  allows a small `maxDiffPixelRatio` (0.01) for anti-aliasing jitter.
 
 Regenerate baselines locally on macOS after an intentional UI change:
 ```bash
-# Update all visual baselines (chromium project)
-npm run test:e2e:visual -- --project=chromium --update-snapshots
+# Update all visual baselines (serial, chromium)
+npm run test:e2e:visual -- --update-snapshots
 
 # Then verify they are byte-stable on a clean re-run
-npm run test:e2e:visual -- --project=chromium
+npm run test:e2e:visual
 ```
 Commit the regenerated `*-chromium-darwin.png` files alongside the UI change.
 
