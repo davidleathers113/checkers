@@ -55,6 +55,16 @@ export abstract class Piece {
   abstract getMoveDirections(): Direction[];
 
   /**
+   * Gets the directions this piece may *capture* in. Defaults to its move
+   * directions — so regular men capture forward only (standard/American rules),
+   * while kings capture in every diagonal direction. Variants that let men
+   * capture backward (e.g. International Draughts) override this.
+   */
+  getCaptureDirections(): Direction[] {
+    return this.getMoveDirections();
+  }
+
+  /**
    * Checks if this piece can capture in a given direction.
    */
   abstract canCaptureInDirection(direction: Direction): boolean;

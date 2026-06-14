@@ -37,9 +37,9 @@ describe('StandardRules', () => {
       const blackPiece = new RegularPiece(Player.BLACK);
       
       board = board.setPiece(new Position(3, 3), redPiece);
-      board = board.setPiece(new Position(4, 4), blackPiece);
-      
-      const move = new Move(new Position(3, 3), new Position(5, 5), [new Position(4, 4)]);
+      board = board.setPiece(new Position(2, 4), blackPiece); // forward (NE) of RED
+
+      const move = new Move(new Position(3, 3), new Position(1, 5), [new Position(2, 4)]);
       expect(rules.validateMove(board, move)).toBe(true);
     });
 
@@ -48,8 +48,8 @@ describe('StandardRules', () => {
       const blackPiece = new RegularPiece(Player.BLACK);
       
       board = board.setPiece(new Position(3, 3), redPiece);
-      board = board.setPiece(new Position(4, 4), blackPiece);
-      
+      board = board.setPiece(new Position(2, 4), blackPiece); // forward capture available
+
       // When capture is available, regular moves should be invalid
       const regularMove = new Move(new Position(3, 3), new Position(2, 2));
       expect(rules.validateMove(board, regularMove)).toBe(false);
@@ -103,10 +103,10 @@ describe('StandardRules', () => {
       const blackPiece = new RegularPiece(Player.BLACK);
       
       board = board.setPiece(new Position(3, 3), redPiece);
-      board = board.setPiece(new Position(4, 4), blackPiece);
-      
+      board = board.setPiece(new Position(2, 4), blackPiece); // forward capture available
+
       const moves = rules.getAllPossibleMoves(board, Player.RED);
-      
+
       // Should only return capture moves
       expect(moves.every(move => move.isCapture())).toBe(true);
     });
@@ -164,10 +164,10 @@ describe('StandardRules', () => {
       const blackPiece = new RegularPiece(Player.BLACK);
       
       board = board.setPiece(new Position(3, 3), redPiece);
-      board = board.setPiece(new Position(4, 4), blackPiece);
-      
+      board = board.setPiece(new Position(2, 4), blackPiece); // forward capture available
+
       const mandatory = rules.getMandatoryMoves(board, Player.RED);
-      
+
       expect(mandatory.length).toBeGreaterThan(0);
       expect(mandatory.every(move => move.isCapture())).toBe(true);
     });

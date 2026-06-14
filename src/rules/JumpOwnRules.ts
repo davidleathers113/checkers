@@ -41,50 +41,47 @@ interface JumpStep {
  * to the next. Every prefix of such a sequence is a legal move, so the player
  * may stop after any jump.
  *
- * Opponent captures keep their normal behaviour: they remove the captured piece
- * and remain mandatory. Captures take priority over a *pure* hop or slide — when
- * a capture is available your move must BEGIN with a capture (you cannot dodge a
- * forced jump by hopping first) and must still take the maximum number of
- * opponents — but once you have captured you may keep going with hops and/or
- * further captures. So both orders are legal in a single turn: hop-then-capture
- * (when no direct capture forces your hand) and capture-then-hop.
+ * Opponent captures keep their normal behaviour: they remove the captured piece.
+ * When any direct jump is on the board the move must capture an opponent (you
+ * may not slide or make a *pure* hop instead) — but the capture may be reached
+ * by hopping your own men first, and you may hop after capturing. So a forced
+ * turn can be a direct capture, a hop-then-capture, a capture-then-hop, or any
+ * chain of these; whichever capturing sequence you like is allowed. Men capture
+ * forward only (see {@link Piece.getCaptureDirections}); kings capture in any
+ * diagonal direction.
  */
 export class JumpOwnRules extends StandardRules {
   override getPossibleMoves(board: Board, position: Position): Move[] {
     const piece = board.getPiece(position);
     if (!piece) return [];
 
-    const mandatory = this.getMandatoryMoves(board, piece.player);
-    if (mandatory.length > 0) {
-      // Forced to capture: only capture-initiated, maximum-capture sequences are
-      // legal (hops may extend them). A piece with no capture of its own offers
-      // nothing — another piece must take the jump.
-      if (piece.getCaptureMoves(position, board).length === 0) return [];
-      return this.forcedCaptureSequences(board, position, piece, mandatory[0]!.getCaptureCount());
+    if (this.getMandatoryMoves(board, piece.player).length > 0) {
+      // A jump is on the board, so the move must capture an opponent. Any
+      // sequence that captures is legal — including ones that reach the capture
+      // by hopping your own men first, or that hop after capturing. A piece that
+      // cannot reach a capture (even via hops) offers nothing.
+      return this.capturingSequences(board, position, piece);
     }
 
     // No forced capture: regular slides, plus every hop / hop-then-capture
-    // sequence reachable from here.
+    // sequence reachable from here (the hop-then-capture is optional here).
     const base = super.getPossibleMoves(board, position);
     const jumps = this.getJumpSequences(board, position, piece);
     return this.dedupeMoves([...base, ...jumps]);
   }
 
   override getAllPossibleMoves(board: Board, player: Player): Move[] {
-    const mandatory = this.getMandatoryMoves(board, player);
-    if (mandatory.length === 0) {
+    if (this.getMandatoryMoves(board, player).length === 0) {
       // Not forced: the inherited logic delegates to getPossibleMoves per piece
       // (slides + hop sequences), which is exactly what we want.
       return super.getAllPossibleMoves(board, player);
     }
 
-    // Forced to capture: every capture-initiated, maximum-capture sequence
-    // (optionally extended with hops) from any piece that can start a capture.
-    const max = mandatory[0]!.getCaptureCount();
+    // Forced to capture: every capturing sequence (direct, hop-then-capture, or
+    // capture-then-hop) from any piece that can reach a capture.
     const moves: Move[] = [];
     for (const { position, piece } of board.getPlayerPieces(player)) {
-      if (piece.getCaptureMoves(position, board).length === 0) continue;
-      moves.push(...this.forcedCaptureSequences(board, position, piece, max));
+      moves.push(...this.capturingSequences(board, position, piece));
     }
     return this.dedupeMoves(moves);
   }
@@ -99,25 +96,13 @@ export class JumpOwnRules extends StandardRules {
     if (!piece) return false;
 
     // Otherwise the move is only legal if it is one of the jump sequences this
-    // position offers (which already encode the mandatory/maximum-capture rules).
+    // position offers (which already encode the mandatory-capture rule).
     return this.getPossibleMoves(board, move.from).some(seq => seq.equals(move));
   }
 
-  /**
-   * The legal jump sequences for `piece` when the player is forced to capture:
-   * those that begin with a capture and take exactly `maxCaptures` opponents
-   * (the player-wide maximum). Hops may be interleaved/appended freely, but they
-   * never change the capture count, so a forced turn always captures the max.
-   */
-  private forcedCaptureSequences(
-    board: Board,
-    position: Position,
-    piece: Piece,
-    maxCaptures: number
-  ): Move[] {
-    return this.getJumpSequences(board, position, piece).filter(
-      seq => seq.steps[0]?.captured !== undefined && seq.getCaptureCount() === maxCaptures
-    );
+  /** Every jump sequence for `piece` that captures at least one opponent. */
+  private capturingSequences(board: Board, position: Position, piece: Piece): Move[] {
+    return this.getJumpSequences(board, position, piece).filter(seq => seq.getCaptureCount() > 0);
   }
 
   /**
@@ -130,9 +115,8 @@ export class JumpOwnRules extends StandardRules {
    * correctly. The search runs on a simulated board (the moving piece is
    * relocated and captured opponents removed at each step) so square occupancy
    * is always accurate; a `visited` set of landing squares prevents hop cycles.
-   *
-   * Callers only invoke this when the player is not under a mandatory capture,
-   * so every sequence necessarily begins with a hop.
+   * Callers filter the result by capture count to enforce the mandatory-jump
+   * rule (see {@link capturingSequences}).
    */
   private getJumpSequences(board: Board, position: Position, piece: Piece): Move[] {
     const results = new Map<string, Move>();
@@ -170,16 +154,18 @@ export class JumpOwnRules extends StandardRules {
 
   /**
    * The immediate jumps available from `from` on `board` for `piece`: captures
-   * over an opponent (any direction) and hops over an own piece (the piece's
-   * own move directions). Regular pieces jump a single adjacent square; kings
-   * glide over empty squares to the first piece and may land anywhere beyond it.
+   * over an opponent (in the piece's capture directions — forward only for a
+   * standard man) and hops over an own piece (the piece's own move directions).
+   * Regular pieces jump a single adjacent square; kings glide over empty squares
+   * to the first piece and may land anywhere beyond it.
    */
   private nextJumps(board: Board, from: Position, piece: Piece): JumpStep[] {
     const jumps: JumpStep[] = [];
 
     if (!piece.isKing()) {
-      // Captures: men may capture in any diagonal direction.
-      for (const direction of ALL_DIRECTIONS) {
+      // Captures: only in the man's capture directions (forward for a standard
+      // man; any direction for an International man).
+      for (const direction of piece.getCaptureDirections()) {
         const { dRow, dCol } = DELTAS[direction];
         const over = new Position(from.row + dRow, from.col + dCol);
         const landing = new Position(from.row + 2 * dRow, from.col + 2 * dCol);

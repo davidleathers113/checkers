@@ -102,13 +102,13 @@ describe('RegularPiece', () => {
   describe('getCaptureMoves', () => {
     it('should return capture moves', () => {
       board = board.setPiece(new Position(3, 3), redPiece);
-      board = board.setPiece(new Position(4, 4), blackPiece); // Enemy to capture
-      
+      board = board.setPiece(new Position(2, 4), blackPiece); // Enemy forward (NE) of RED
+
       const captureMoves = redPiece.getCaptureMoves(new Position(3, 3), board);
-      
+
       expect(captureMoves).toHaveLength(1);
-      expect(captureMoves[0]!.to).toEqual(new Position(5, 5));
-      expect(captureMoves[0]!.captures).toContainEqual(new Position(4, 4));
+      expect(captureMoves[0]!.to).toEqual(new Position(1, 5));
+      expect(captureMoves[0]!.captures).toContainEqual(new Position(2, 4));
     });
 
     it('should return empty array when no captures available', () => {
@@ -180,9 +180,12 @@ describe('RegularPiece', () => {
   });
 
   describe('canCaptureInDirection', () => {
-    it('should allow captures in any direction', () => {
+    it('allows captures only in the forward directions (men cannot capture backward)', () => {
+      // RED moves toward row 0, so NW/NE are forward and SW/SE are backward.
       expect(redPiece.canCaptureInDirection(Direction.NORTH_WEST)).toBe(true);
-      expect(redPiece.canCaptureInDirection(Direction.SOUTH_EAST)).toBe(true);
+      expect(redPiece.canCaptureInDirection(Direction.NORTH_EAST)).toBe(true);
+      expect(redPiece.canCaptureInDirection(Direction.SOUTH_WEST)).toBe(false);
+      expect(redPiece.canCaptureInDirection(Direction.SOUTH_EAST)).toBe(false);
     });
   });
 

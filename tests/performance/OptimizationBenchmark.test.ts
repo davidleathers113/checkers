@@ -54,19 +54,20 @@ describe('Optimization Benchmarks', () => {
       const board = new Board(8);
       
       // Set up a complex capture scenario
-      const redPiece = new RegularPiece(Player.RED);
+      // Black moves down the board, so a forward triple-jump runs (1,1) -> (7,7)
+      // capturing the RED men at (2,2), (4,4), (6,6).
       const blackPiece = new RegularPiece(Player.BLACK);
-      
+
       // Create a triple-jump scenario
       let testBoard = board
-        .setPiece(new Position(0, 0), redPiece)
         .setPiece(new Position(1, 1), blackPiece)
-        .setPiece(new Position(3, 3), blackPiece)
-        .setPiece(new Position(5, 5), blackPiece);
-      
+        .setPiece(new Position(2, 2), new RegularPiece(Player.RED))
+        .setPiece(new Position(4, 4), new RegularPiece(Player.RED))
+        .setPiece(new Position(6, 6), new RegularPiece(Player.RED));
+
       // Measure capture move generation
-      const captures = PerformanceProfiler.measure('capture-search', () => 
-        redPiece.getCaptureMoves(new Position(0, 0), testBoard)
+      const captures = PerformanceProfiler.measure('capture-search', () =>
+        blackPiece.getCaptureMoves(new Position(1, 1), testBoard)
       );
       
       const stats = PerformanceProfiler.getStats('capture-search');

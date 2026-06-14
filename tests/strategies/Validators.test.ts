@@ -68,12 +68,20 @@ describe('DiagonalMoveValidator', () => {
     expect(() => v.validateMove(board, new Move(new Position(5, 2), new Position(6, 3)), RED)).toThrow(); // backward
   });
 
-  it('allows a regular backward capture (direction constraint is non-capture only)', () => {
-    const board = new Board(8)
+  it('rejects a backward capture for a regular man but allows a forward one', () => {
+    // SE is backward for RED — a man may not capture that way.
+    const backward = new Board(8)
       .setPiece(new Position(3, 3), new RegularPiece(RED))
       .setPiece(new Position(4, 4), new RegularPiece(BLACK));
-    const move = new Move(new Position(3, 3), new Position(5, 5), [new Position(4, 4)]); // SE = backward for RED
-    expect(v.validateMove(board, move, RED)).toBe(true);
+    const backwardMove = new Move(new Position(3, 3), new Position(5, 5), [new Position(4, 4)]);
+    expect(() => v.validateMove(backward, backwardMove, RED)).toThrow();
+
+    // NE is forward for RED — that capture is allowed.
+    const forward = new Board(8)
+      .setPiece(new Position(3, 3), new RegularPiece(RED))
+      .setPiece(new Position(2, 4), new RegularPiece(BLACK));
+    const forwardMove = new Move(new Position(3, 3), new Position(1, 5), [new Position(2, 4)]);
+    expect(v.validateMove(forward, forwardMove, RED)).toBe(true);
   });
 
   it('handles king path: clear passes, blocked throws', () => {
@@ -191,14 +199,14 @@ describe('MandatoryCaptureValidator', () => {
   it('rejects a non-capture when a capture exists', () => {
     const board = new Board(8)
       .setPiece(new Position(3, 3), new RegularPiece(RED))
-      .setPiece(new Position(4, 4), new RegularPiece(BLACK));
+      .setPiece(new Position(2, 4), new RegularPiece(BLACK)); // forward capture available
     expect(() => v.validateMove(board, new Move(new Position(3, 3), new Position(2, 2)), RED)).toThrow();
   });
 
   it('rejects a capture that is not among the available ones', () => {
     const board = new Board(8)
       .setPiece(new Position(3, 3), new RegularPiece(RED))
-      .setPiece(new Position(4, 4), new RegularPiece(BLACK));
+      .setPiece(new Position(2, 4), new RegularPiece(BLACK)); // forward capture available
     const bogus = new Move(new Position(3, 3), new Position(1, 1), [new Position(2, 2)]);
     expect(() => v.validateMove(board, bogus, RED)).toThrow();
   });
