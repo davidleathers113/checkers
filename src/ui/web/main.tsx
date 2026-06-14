@@ -15,7 +15,7 @@ root.render(<GameApp />);
 // support is a progressive enhancement, so failures are non-fatal.
 if (__PROD__ && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register(`${__BASE__}sw.js`).catch(() => {
       /* Ignore: the game still works fully online without a service worker. */
     });
   });

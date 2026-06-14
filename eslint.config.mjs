@@ -47,7 +47,8 @@ export default [
       },
       globals: {
         ...globals.browser,
-        __PROD__: 'readonly'
+        __PROD__: 'readonly',
+        __BASE__: 'readonly'
       }
     },
     plugins: {
