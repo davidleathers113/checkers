@@ -78,8 +78,9 @@ export class RegularPiece extends Piece {
     capturedOnPath: Set<string>,
     allSequences: Move[]
   ): void {
-    // Check all four diagonal directions for the next jump.
-    for (const direction of [Direction.NORTH_WEST, Direction.NORTH_EAST, Direction.SOUTH_WEST, Direction.SOUTH_EAST]) {
+    // Check each capturable diagonal direction for the next jump. Regular men
+    // capture forward only (getCaptureDirections); International men override it.
+    for (const direction of this.getCaptureDirections()) {
       const opponentPos = this.getNextPosition(currentPos, direction, board.size);
       if (!opponentPos) continue;
 
@@ -159,10 +160,10 @@ export class RegularPiece extends Piece {
   }
 
   /**
-   * Regular pieces can capture in any direction.
+   * Regular pieces capture only in their (forward) capture directions.
    */
-  canCaptureInDirection(_direction: Direction): boolean {
-    return true;
+  canCaptureInDirection(direction: Direction): boolean {
+    return this.getCaptureDirections().includes(direction);
   }
 
   /**

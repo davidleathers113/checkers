@@ -159,16 +159,48 @@ describe('JumpOwnRules — hop over your own man', () => {
       expect(after.isEmpty(new Position(1, 4))).toBe(true);
     });
 
-    it('does not offer a hop-then-capture while a direct capture is mandatory', () => {
+    it('offers nothing for a piece that cannot reach any capture while a jump is mandatory', () => {
       const board = new Board(8)
         .setPiece(new Position(6, 1), new RegularPiece(RED))
-        .setPiece(new Position(5, 2), new RegularPiece(RED)) // would enable a hop
+        .setPiece(new Position(5, 2), new RegularPiece(RED)) // (6,1) could hop this, but...
         .setPiece(new Position(5, 6), new RegularPiece(RED))
         .setPiece(new Position(4, 5), new RegularPiece(BLACK)); // (5,6)x(4,5)->(3,4) is forced
+      // (6,1) can only make a pure hop, which reaches no capture — so while a
+      // jump is mandatory it offers nothing (a pure hop/slide is not allowed).
       const moves = rules.getPossibleMoves(board, new Position(6, 1));
-      // No hop and no hop-then-capture while forced to take the mandatory jump.
-      expect(hasMove(moves, new Position(6, 1), new Position(4, 3))).toBe(false);
-      expect(moves.find(m => m.to.equals(new Position(2, 5)))).toBeUndefined();
+      expect(moves).toHaveLength(0);
+    });
+
+    it('lets a different piece satisfy a forced jump by hopping its own man first', () => {
+      // (5,0) has a direct capture, so a jump is mandatory. (6,3) has no direct
+      // capture, but can hop its own man at (5,4) to (4,5) and then jump the
+      // BLACK at (3,6). That hop-then-capture must be offered (not locked out).
+      const board = new Board(8)
+        .setPiece(new Position(5, 0), new RegularPiece(RED)) // forces the jump (x(4,1)->(3,2))
+        .setPiece(new Position(4, 1), new RegularPiece(BLACK))
+        .setPiece(new Position(6, 3), new RegularPiece(RED)) // reaches a capture via a hop
+        .setPiece(new Position(5, 4), new RegularPiece(RED)) // own man to hop over (NE)
+        .setPiece(new Position(3, 6), new RegularPiece(BLACK)); // captured after the hop
+
+      const moves = rules.getPossibleMoves(board, new Position(6, 3));
+      const combo = moves.find(m => m.to.equals(new Position(2, 7)));
+      expect(combo).toBeDefined();
+      expect(combo!.captures.some(c => c.equals(new Position(3, 6)))).toBe(true);
+      expect(rules.validateMove(board, combo!)).toBe(true);
+    });
+
+    it('does not let a regular man capture backward (only kings may)', () => {
+      // BLACK sits behind RED (SE = backward for RED). No capture should exist.
+      const board = new Board(8)
+        .setPiece(new Position(3, 3), new RegularPiece(RED))
+        .setPiece(new Position(4, 4), new RegularPiece(BLACK))
+        .setPiece(new Position(2, 7), new RegularPiece(BLACK)); // keeps the game live
+      const moves = rules.getPossibleMoves(board, new Position(3, 3));
+      expect(moves.some(m => m.isCapture())).toBe(false);
+      // A king in the same spot may capture backward.
+      const kingBoard = board.setPiece(new Position(3, 3), new KingPiece(RED));
+      const kingMoves = rules.getPossibleMoves(kingBoard, new Position(3, 3));
+      expect(kingMoves.some(m => m.isCapture() && m.captures.some(c => c.equals(new Position(4, 4))))).toBe(true);
     });
 
     it('lets a king hop its own man flying-style and then capture an opponent', () => {
@@ -233,20 +265,21 @@ describe('JumpOwnRules — hop over your own man', () => {
       expect(after.isEmpty(new Position(5, 2))).toBe(true); // moved away
     });
 
-    it('still requires the maximum capture (a shorter capture-then-hop is not offered)', () => {
+    it('offers shorter capturing lines too (no forced maximum in this variant)', () => {
       const board = new Board(8)
         .setPiece(new Position(6, 1), new RegularPiece(RED)) // can double-capture
         .setPiece(new Position(5, 2), new RegularPiece(BLACK))
         .setPiece(new Position(3, 4), new RegularPiece(BLACK))
-        .setPiece(new Position(3, 2), new RegularPiece(RED)); // tempting 1-capture-then-hop
+        .setPiece(new Position(3, 2), new RegularPiece(RED)); // enables a 1-capture-then-hop
 
       const moves = rules.getPossibleMoves(board, new Position(6, 1));
 
-      // Only the maximum (two-capture) line is legal.
-      expect(moves.every(m => m.getCaptureCount() === 2)).toBe(true);
+      // The full two-capture line is available...
       expect(hasMove(moves, new Position(6, 1), new Position(2, 5))).toBe(true);
-      // The shorter one-capture-then-hop landing (2,1) is suppressed.
-      expect(moves.find(m => m.to.equals(new Position(2, 1)))).toBeUndefined();
+      // ...and so is the shorter one-capture-then-hop (you are not forced to take the max).
+      expect(hasMove(moves, new Position(6, 1), new Position(2, 1))).toBe(true);
+      // Every offered move still captures at least one opponent.
+      expect(moves.every(m => m.getCaptureCount() >= 1)).toBe(true);
     });
 
     it('executes a capture-then-hop through the Game controller', () => {

@@ -47,10 +47,18 @@ export class DiagonalMoveValidator extends BaseMoveValidator {
         );
       }
 
-      // Direction constraint applies to non-capture moves only; regular pieces
-      // may capture in any diagonal direction (see RegularPiece.getCaptureMoves).
-      if (!move.isCapture() && !this.isValidDirectionForRegularPiece(move, piece.player)) {
-        throw new InvalidMoveError(move, 'Regular pieces can only move forward');
+      if (!move.isCapture()) {
+        // Plain moves must go forward.
+        if (!this.isValidDirectionForRegularPiece(move, piece.player)) {
+          throw new InvalidMoveError(move, 'Regular pieces can only move forward');
+        }
+      } else {
+        // Captures must be in one of the piece's capture directions — forward
+        // only for a standard man, any direction for an International man.
+        const direction = move.getDirection();
+        if (!direction || !(piece.getCaptureDirections() as readonly string[]).includes(direction)) {
+          throw new InvalidMoveError(move, 'This piece cannot capture in that direction');
+        }
       }
     } else {
       // Kings can move any distance, but path must be clear (except for captures)

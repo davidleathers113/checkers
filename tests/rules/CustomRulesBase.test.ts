@@ -59,7 +59,7 @@ describe('CustomRulesBase', () => {
     const helper = new HelperRules();
     const board = new Board(8)
       .setPiece(new Position(3, 3), new RegularPiece(Player.RED))
-      .setPiece(new Position(4, 4), new RegularPiece(Player.BLACK))
+      .setPiece(new Position(2, 4), new RegularPiece(Player.BLACK)) // forward (NE) capture for RED
       .setPiece(new Position(6, 6), new KingPiece(Player.RED));
 
     expect(helper.publicCaptures(board, Player.RED).length).toBeGreaterThan(0);
